@@ -1,0 +1,20 @@
+{
+    "name": "overblog/dataloader-php",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Overblog\\DataLoader\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Overblog\\DataLoader\\Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": "^5.4|^7.0",
+        "symfony/cache": "^3.1",
+        "guzzlehttp/promises": "^1.2"
+    }
+}
