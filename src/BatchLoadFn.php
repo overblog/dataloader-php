@@ -4,12 +4,16 @@ namespace Overblog\DataLoader;
 
 class BatchLoadFn
 {
-    public function __construct()
+    private $batchLoadFn;
+
+    public function __construct(callable $batchLoadFn)
     {
+        $this->batchLoadFn = $batchLoadFn;
     }
 
-    public function __invoke($keys)
+    public function __invoke(array $keys)
     {
-        // TODO: Implement __invoke() method.
+        $batchLoadFn = $this->batchLoadFn;
+        return $batchLoadFn($keys);
     }
 }
