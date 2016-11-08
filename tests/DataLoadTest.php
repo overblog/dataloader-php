@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of the DataLoaderPhp package.
+ *
+ * (c) Overblog <http://github.com/overblog/>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Overblog\DataLoader\Tests;
 
 use Overblog\DataLoader\BatchLoadFn;
@@ -454,11 +463,29 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
          */
         list($identityLoader, $loadCalls) = self::idLoader();
 
-        $keyA = [];
-        $keyB = [];
+        $keyA = new \stdClass();
+        $keyB = new \stdClass();
         list($valueA, $valueB) = self::awaitPromise(\React\Promise\all([$identityLoader->load($keyA), $identityLoader->load($keyB)]), $identityLoader);
         $this->assertEquals($keyA, $valueA);
         $this->assertEquals($keyB, $valueB);
+
+        $loadCallsArray = $loadCalls->getArrayCopy();
+        $this->assertCount(1, $loadCallsArray);
+        $this->assertCount(2, $loadCallsArray[0]);
+        $this->assertEquals($keyA, $loadCallsArray[0][0]);
+        $this->assertEquals($keyB, $loadCallsArray[0][1]);
+
+        // Caching
+        $identityLoader->clear($keyA);
+
+        list($valueA2, $valueB2) = self::awaitPromise(\React\Promise\all([$identityLoader->load($keyA), $identityLoader->load($keyB)]), $identityLoader);
+        $this->assertEquals($keyA, $valueA2);
+        $this->assertEquals($keyB, $valueB2);
+
+        $loadCallsArray = $loadCalls->getArrayCopy();
+        $this->assertCount(2, $loadCallsArray);
+        $this->assertCount(1, $loadCallsArray[1]);
+        $this->assertEquals($keyA, $loadCallsArray[1][0]);
     }
 
     private static function getSimpleIdentityLoader()

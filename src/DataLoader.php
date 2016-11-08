@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of the DataLoaderPhp package.
+ *
+ * (c) Overblog <http://github.com/overblog/>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Overblog\DataLoader;
 
 use React\Promise\Promise;
@@ -237,7 +246,9 @@ class DataLoader
         }
 
         if ($this->eventLoop) {
-            $this->resolvedPromise->then(function () use ($fn) { $this->eventLoop->nextTick($fn); });
+            $this->resolvedPromise->then(function () use ($fn) {
+                $this->eventLoop->nextTick($fn);
+            });
         }
     }
 
@@ -278,7 +289,7 @@ class DataLoader
 
         // Assert the expected response from batchLoadFn
         if (!$batchPromise || !is_callable([$batchPromise, 'then'])) {
-           $this->failedDispatch($queue, new \RuntimeException(
+            $this->failedDispatch($queue, new \RuntimeException(
                 'DataLoader must be constructed with a function which accepts '.
                 'Array<key> and returns Promise<Array<value>>, but the function did '.
                 sprintf('not return a Promise: %s.', gettype($batchPromise))
