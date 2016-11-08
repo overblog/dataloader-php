@@ -1,9 +1,17 @@
 <?php
 
+/*
+ * This file is part of the DataLoaderPhp package.
+ *
+ * (c) Overblog <http://github.com/overblog/>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Overblog\DataLoader;
 
 use Symfony\Component\Cache\Adapter\AdapterInterface;
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 class Option
 {
@@ -28,17 +36,26 @@ class Option
     private $cacheKeyFn;
 
     /**
-     * @var AdapterInterface
+     * @var CacheMap
      */
     private $cacheMap;
 
-    public function __construct($batch = true, $maxBatchSize = null, $cache = true, callable $cacheKeyFn = null, AdapterInterface $cacheMap = null)
+    public function __construct(array $params = [])
     {
-        $this->batch = $batch;
-        $this->maxBatchSize = $maxBatchSize;
-        $this->cache = $cache;
-        $this->cacheKeyFn = $cacheKeyFn;
-        $this->cacheMap = $cacheMap?:new ArrayAdapter(0, false);
+        $defaultOptions = [
+            'batch' => true,
+            'maxBatchSize' => null,
+            'cache' => true,
+            'cacheKeyFn' => null,
+            'cacheMap' => new CacheMap()
+        ];
+
+        $options = array_merge($defaultOptions, $params);
+
+        foreach ($options as $name => $value) {
+            $method = 'set'.ucfirst($name);
+            $this->$method($value);
+        }
     }
 
     /**
@@ -107,14 +124,14 @@ class Option
      * @param callable $cacheKeyFn
      * @return Option
      */
-    public function setCacheKeyFn(callable $cacheKeyFn)
+    public function setCacheKeyFn(callable $cacheKeyFn = null)
     {
         $this->cacheKeyFn = $cacheKeyFn;
         return $this;
     }
 
     /**
-     * @return AdapterInterface
+     * @return CacheMap
      */
     public function getCacheMap()
     {
@@ -122,10 +139,10 @@ class Option
     }
 
     /**
-     * @param AdapterInterface $cacheMap
+     * @param CacheMap $cacheMap
      * @return Option
      */
-    public function setCacheMap(AdapterInterface $cacheMap)
+    public function setCacheMap(CacheMap $cacheMap)
     {
         $this->cacheMap = $cacheMap;
         return $this;
