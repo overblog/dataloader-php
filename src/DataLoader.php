@@ -17,7 +17,7 @@ class DataLoader
     private $options;
 
     /**
-     * @var Promise[]
+     * @var CacheMap
      */
     private $promiseCache;
 
@@ -41,7 +41,7 @@ class DataLoader
         $this->batchLoadFn = $batchLoadFn;
         $this->options = $options ?: new Option();
         $this->eventLoop = class_exists('React\\EventLoop\\Factory') ? \React\EventLoop\Factory::create() : null;
-        $this->resultCache = $this->options->getCacheMap();
+        $this->promiseCache = $this->options->getCacheMap();
     }
 
     /**
@@ -62,7 +62,7 @@ class DataLoader
 
         // If caching and there is a cache-hit, return cached Promise.
         if ($shouldCache) {
-            $cachedPromise = isset($this->promiseCache[$cacheKey]) ? $this->promiseCache[$cacheKey] : null;
+            $cachedPromise = $this->promiseCache->get($cacheKey);
             if ($cachedPromise) {
                 return $cachedPromise;
             }
@@ -93,7 +93,7 @@ class DataLoader
         });
         // If caching, cache this promise.
         if ($shouldCache) {
-            $this->promiseCache[$cacheKey] = $promise;
+            $this->promiseCache->set($cacheKey, $promise);
         }
 
         return $promise;
@@ -137,9 +137,7 @@ class DataLoader
     {
         $this->checkKey($key, __METHOD__);
 
-        $cacheKeyFn = $this->options->getCacheKeyFn();
-        $cacheKey = $cacheKeyFn ? $cacheKeyFn($key) : $key;
-        unset($this->promiseCache[$cacheKey]);
+        $this->promiseCache->clear($key);
 
         return $this;
     }
@@ -152,7 +150,7 @@ class DataLoader
      */
     public function clearAll()
     {
-        $this->promiseCache = [];
+        $this->promiseCache->clearAll();
         return $this;
     }
 
@@ -171,12 +169,12 @@ class DataLoader
         $cacheKey = $cacheKeyFn ? $cacheKeyFn($key) : $key;
 
         // Only add the key if it does not already exist.
-        if (!isset($this->promiseCache[$cacheKey])) {
+        if (!$this->promiseCache->has($cacheKey)) {
             // Cache a rejected promise if the value is an Error, in order to match
             // the behavior of load(key).
             $promise = $value instanceof \Exception ? \React\Promise\reject($value) : \React\Promise\resolve($value);
 
-            $this->promiseCache[$cacheKey] = $promise;
+            $this->promiseCache->set($cacheKey, $promise);
         }
 
         return $this;
@@ -222,9 +220,9 @@ class DataLoader
 
     private function checkKey($key, $method)
     {
-        if (empty($key) || !is_scalar($key)) {
+        if (null === $key) {
             throw new \InvalidArgumentException(
-                sprintf('The %s function must be called with a scalar value, but got: %s.', $method, gettype($key))
+                sprintf('The %s function must be called with a value, but got: %s.', $method, gettype($key))
             );
         }
     }

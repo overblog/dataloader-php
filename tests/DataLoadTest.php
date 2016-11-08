@@ -443,6 +443,24 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals([[1, 2]], $loadCalls->getArrayCopy());
     }
 
+    /**
+     * @group accepts-any-kind-of-key
+     */
+    public function testAcceptsObjectsAsKeys()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader();
+
+        $keyA = [];
+        $keyB = [];
+        list($valueA, $valueB) = self::awaitPromise(\React\Promise\all([$identityLoader->load($keyA), $identityLoader->load($keyB)]), $identityLoader);
+        $this->assertEquals($keyA, $valueA);
+        $this->assertEquals($keyB, $valueB);
+    }
+
     private static function getSimpleIdentityLoader()
     {
         return new DataLoader(

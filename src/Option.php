@@ -3,7 +3,6 @@
 namespace Overblog\DataLoader;
 
 use Symfony\Component\Cache\Adapter\AdapterInterface;
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 class Option
 {
@@ -28,7 +27,7 @@ class Option
     private $cacheKeyFn;
 
     /**
-     * @var AdapterInterface
+     * @var CacheMap
      */
     private $cacheMap;
 
@@ -39,7 +38,7 @@ class Option
             'maxBatchSize' => null,
             'cache' => true,
             'cacheKeyFn' => null,
-            'cacheMap' => new ArrayAdapter(0, false)
+            'cacheMap' => new CacheMap()
         ];
 
         $options = array_merge($defaultOptions, $params);
@@ -123,7 +122,7 @@ class Option
     }
 
     /**
-     * @return AdapterInterface
+     * @return CacheMap
      */
     public function getCacheMap()
     {
@@ -131,10 +130,10 @@ class Option
     }
 
     /**
-     * @param AdapterInterface $cacheMap
+     * @param CacheMap $cacheMap
      * @return Option
      */
-    public function setCacheMap(AdapterInterface $cacheMap = null)
+    public function setCacheMap(CacheMap $cacheMap)
     {
         $this->cacheMap = $cacheMap;
         return $this;
