@@ -189,6 +189,37 @@ class DataLoader
         }
     }
 
+    /**
+     * @param $promise
+     * @param bool $unwrap controls whether or not the value of the promise is returned for a fulfilled promise or if an exception is thrown if the promise is rejected
+     * @return mixed
+     * @throws null
+     */
+    public function await($promise, $unwrap = true)
+    {
+        $resolvedValue = null;
+        $exception = null;
+
+        if (!is_callable([$promise, 'then'])) {
+            throw new \InvalidArgumentException('Promise must have a "then" method.');
+        }
+
+        $promise->then(function ($values) use (&$resolvedValue) {
+            $resolvedValue = $values;
+        }, function ($reason) use (&$exception) {
+            $exception = $reason;
+        });
+        $this->process();
+        if ($exception instanceof \Exception) {
+            if (!$unwrap) {
+                return $exception;
+            }
+            throw $exception;
+        }
+
+        return $resolvedValue;
+    }
+
     private function checkKey($key, $method)
     {
         if (empty($key) || !is_scalar($key)) {
@@ -209,8 +240,6 @@ class DataLoader
 
         if ($this->eventLoop) {
             $this->resolvedPromise->then(function () use ($fn) { $this->eventLoop->nextTick($fn); });
-        } else {
-
         }
     }
 

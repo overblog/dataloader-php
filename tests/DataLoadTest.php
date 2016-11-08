@@ -29,7 +29,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
     {
         $identityLoader = self::getSimpleIdentityLoader();
 
-        $promiseAll = $identityLoader->loadMany([ 1, 2 ]);
+        $promiseAll = $identityLoader->loadMany([1, 2]);
         $this->assertInstanceOfPromise($promiseAll);
         $this->assertEquals([1, 2], self::awaitPromise($promiseAll, $identityLoader));
 
@@ -126,7 +126,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('C', $c);
         $this->assertEquals([['A', 'B'], ['C']], $loadCalls->getArrayCopy());
 
-        list($a3, $b2, $c2) = self::awaitPromise(\React\Promise\all([$identityLoader->load('A'),  $identityLoader->load('B'), $identityLoader->load('C')]), $identityLoader);
+        list($a3, $b2, $c2) = self::awaitPromise(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B'), $identityLoader->load('C')]), $identityLoader);
         $this->assertEquals('A', $a3);
         $this->assertEquals('B', $b2);
         $this->assertEquals('C', $c2);
@@ -255,6 +255,194 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals([['B']], $loadCalls->getArrayCopy());
     }
 
+    /**
+     * @group represents-errors
+     */
+    public function testResolvesToErrorToIndicateFailure()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($evenLoader, $loadCalls) = self::eventLoader();
+
+        $caughtError = null;
+        try {
+            $this->awaitPromise($evenLoader->load(1), $evenLoader);
+        } catch (\Exception $error) {
+            $caughtError = $error;
+        }
+        $this->assertInstanceOf(\Exception::class, $caughtError);
+        $this->assertEquals($caughtError->getMessage(), 'Odd: 1');
+        $value2 = $this->awaitPromise($evenLoader->load(2), $evenLoader);
+        $this->assertEquals(2, $value2);
+
+        $this->assertEquals([[1], [2]], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group represents-errors
+     */
+    public function testCanRepresentFailuresAndSuccessesSimultaneously()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($evenLoader, $loadCalls) = self::eventLoader();
+
+        $promise1 = $evenLoader->load(1);
+        $promise2 = $evenLoader->load(2);
+
+        $caughtError = null;
+        try {
+            $this->awaitPromise($promise1, $evenLoader);
+        } catch (\Exception $error) {
+            $caughtError = $error;
+        }
+        $this->assertInstanceOf(\Exception::class, $caughtError);
+        $this->assertEquals($caughtError->getMessage(), 'Odd: 1');
+
+        $this->assertEquals(2, $this->awaitPromise($promise2, $evenLoader));
+        $this->assertEquals([[1, 2]], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group represents-errors
+     */
+    public function testCachesFailedFetches()
+    {
+        /**
+         * @var DataLoader $errorLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($errorLoader, $loadCalls) = self::errorLoader();
+
+        $caughtErrorA = null;
+        try {
+            $this->awaitPromise($errorLoader->load(1), $errorLoader);
+        } catch (\Exception $error) {
+            $caughtErrorA = $error;
+        }
+        $this->assertInstanceOf(\Exception::class, $caughtErrorA);
+        $this->assertEquals($caughtErrorA->getMessage(), 'Error: 1');
+
+        $caughtErrorB = null;
+        try {
+            $this->awaitPromise($errorLoader->load(1), $errorLoader);
+        } catch (\Exception $error) {
+            $caughtErrorB = $error;
+        }
+        $this->assertInstanceOf(\Exception::class, $caughtErrorB);
+        $this->assertEquals($caughtErrorB->getMessage(), 'Error: 1');
+
+        $this->assertEquals([[1]], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group represents-errors
+     */
+    public function testHandlesPrimingTheCacheWithAnError()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader();
+
+        $identityLoader->prime(1, new \Exception('Error: 1'));
+        $caughtErrorA = null;
+        try {
+            $this->awaitPromise($identityLoader->load(1), $identityLoader);
+        } catch (\Exception $error) {
+            $caughtErrorA = $error;
+        }
+        $this->assertInstanceOf(\Exception::class, $caughtErrorA);
+        $this->assertEquals($caughtErrorA->getMessage(), 'Error: 1');
+
+        $this->assertEquals([], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group represents-errors
+     */
+    public function testCanClearValuesFromCacheAfterErrors()
+    {
+        /**
+         * @var DataLoader $errorLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($errorLoader, $loadCalls) = self::errorLoader();
+
+        $caughtErrorA = null;
+        try {
+            $this->awaitPromise(
+                $errorLoader->load(1)
+                    ->otherwise(function ($error) use (&$errorLoader) {
+                        $errorLoader->clear(1);
+                        throw $error;
+                    }),
+                $errorLoader);
+        } catch (\Exception $error) {
+            $caughtErrorA = $error;
+        }
+        $this->assertInstanceOf(\Exception::class, $caughtErrorA);
+        $this->assertEquals($caughtErrorA->getMessage(), 'Error: 1');
+
+        $caughtErrorB = null;
+        try {
+            $this->awaitPromise(
+                $errorLoader->load(1)
+                    ->otherwise(function ($error) use (&$errorLoader) {
+                        $errorLoader->clear(1);
+                        throw $error;
+                    }),
+                $errorLoader);
+        } catch (\Exception $error) {
+            $caughtErrorB = $error;
+        }
+        $this->assertInstanceOf(\Exception::class, $caughtErrorB);
+        $this->assertEquals($caughtErrorB->getMessage(), 'Error: 1');
+
+        $this->assertEquals([[1], [1]], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group represents-errors
+     */
+    public function testPropagatesErrorToAllLoads()
+    {
+        $loadCalls = new \ArrayObject();
+
+        $failLoader = new DataLoader(new BatchLoadFn(function ($keys) use (&$loadCalls) {
+            $loadCalls[] = $keys;
+            return \React\Promise\reject(new \Exception('I am a terrible loader'));
+        }));
+
+        $promise1 = $failLoader->load(1);
+        $promise2 = $failLoader->load(2);
+
+        $caughtError1 = null;
+        try {
+            $this->awaitPromise($promise1, $failLoader);
+        } catch (\Exception $error) {
+            $caughtError1 = $error;
+        }
+        $this->assertInstanceOf(\Exception::class, $caughtError1);
+        $this->assertEquals($caughtError1->getMessage(), 'I am a terrible loader');
+
+        $caughtError2 = null;
+        try {
+            $this->awaitPromise($promise2, $failLoader);
+        } catch (\Exception $error) {
+            $caughtError2 = $error;
+        }
+        $this->assertInstanceOf(\Exception::class, $caughtError2);
+        $this->assertEquals($caughtError2->getMessage(), 'I am a terrible loader');
+
+        $this->assertEquals([[1, 2]], $loadCalls->getArrayCopy());
+    }
+
     private static function getSimpleIdentityLoader()
     {
         return new DataLoader(
@@ -264,16 +452,49 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         );
     }
 
+    private static function errorLoader()
+    {
+        $loadCalls = new \ArrayObject();
+
+        $errorLoader = new DataLoader(new BatchLoadFn(function ($keys) use (&$loadCalls) {
+            $loadCalls[] = $keys;
+            return \React\Promise\resolve(
+                array_map(function ($key) {
+                    return new \Exception("Error: $key");
+                }, $keys)
+            );
+        }));
+
+        return [$errorLoader, $loadCalls];
+    }
+
+    private static function eventLoader()
+    {
+        $loadCalls = new \ArrayObject();
+
+        $evenLoader = new DataLoader(new BatchLoadFn(function ($keys) use (&$loadCalls) {
+            $loadCalls[] = $keys;
+            return \React\Promise\resolve(
+                array_map(function ($key) {
+                    return $key % 2 === 0 ? $key : new \Exception("Odd: $key");
+                }, $keys)
+            );
+        }));
+
+        return [$evenLoader, $loadCalls];
+    }
+
     private static function idLoader(Option $options = null)
     {
         $loadCalls = new \ArrayObject();
-        $identityLoader = new DataLoader(
-            new BatchLoadFn(function ($keys) use (&$loadCalls) {
-                $loadCalls[] = $keys;
-                return \React\Promise\resolve($keys);
-            }),
-            $options
-        );
+        $batchLoadFn = new BatchLoadFn();
+
+        $batchLoadFn->setBatchLoadFn(function ($keys) use (&$loadCalls) {
+            $loadCalls[] = $keys;
+            return \React\Promise\resolve($keys);
+        });
+
+        $identityLoader = new DataLoader($batchLoadFn, $options);
 
         return [$identityLoader, $loadCalls];
     }
@@ -285,16 +506,6 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
 
     private static function awaitPromise(PromiseInterface $promise, DataLoader $identityLoader)
     {
-        $resolvedValue = null;
-
-        $promise->then(function ($values) use (&$resolvedValue) {
-            $resolvedValue = $values;
-        }, function ($e) {
-            throw $e;
-        });
-        $identityLoader->process();
-
-        return $resolvedValue;
+        return $identityLoader->await($promise);
     }
-
 }
