@@ -6,6 +6,7 @@ use Overblog\DataLoader\BatchLoadFn;
 use Overblog\DataLoader\DataLoader;
 use Overblog\DataLoader\Option;
 use React\Promise\Promise;
+use React\Promise\PromiseInterface;
 
 class DataLoadTest extends \PHPUnit_Framework_TestCase
 {
@@ -104,6 +105,156 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals([[1]], $loadCalls->getArrayCopy());
     }
 
+    /**
+     * @group primary-api
+     */
+    public function testCachesRepeatedRequests()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader();
+
+        list($a, $b) = self::awaitPromise(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]), $identityLoader);
+        $this->assertEquals('A', $a);
+        $this->assertEquals('B', $b);
+        $this->assertEquals([['A', 'B']], $loadCalls->getArrayCopy());
+
+        list($a2, $c) = self::awaitPromise(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('C')]), $identityLoader);
+        $this->assertEquals('A', $a2);
+        $this->assertEquals('C', $c);
+        $this->assertEquals([['A', 'B'], ['C']], $loadCalls->getArrayCopy());
+
+        list($a3, $b2, $c2) = self::awaitPromise(\React\Promise\all([$identityLoader->load('A'),  $identityLoader->load('B'), $identityLoader->load('C')]), $identityLoader);
+        $this->assertEquals('A', $a3);
+        $this->assertEquals('B', $b2);
+        $this->assertEquals('C', $c2);
+        $this->assertEquals([['A', 'B'], ['C']], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group primary-api
+     */
+    public function testClearsSingleValueInLoader()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader();
+
+        list($a, $b) = self::awaitPromise(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]), $identityLoader);
+        $this->assertEquals('A', $a);
+        $this->assertEquals('B', $b);
+        $this->assertEquals([['A', 'B']], $loadCalls->getArrayCopy());
+
+        $identityLoader->clear('A');
+        list($a2, $b2) = self::awaitPromise(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]), $identityLoader);
+        $this->assertEquals('A', $a2);
+        $this->assertEquals('B', $b2);
+        $this->assertEquals([['A', 'B'], ['A']], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group primary-api
+     */
+    public function testClearsAllValuesInLoader()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader();
+
+        list($a, $b) = self::awaitPromise(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]), $identityLoader);
+        $this->assertEquals('A', $a);
+        $this->assertEquals('B', $b);
+        $this->assertEquals([['A', 'B']], $loadCalls->getArrayCopy());
+
+        $identityLoader->clearAll();
+        list($a2, $b2) = self::awaitPromise(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]), $identityLoader);
+        $this->assertEquals('A', $a2);
+        $this->assertEquals('B', $b2);
+        $this->assertEquals([['A', 'B'], ['A', 'B']], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group primary-api
+     */
+    public function testAllowsPrimingTheCache()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader();
+
+        $identityLoader->prime('A', 'A');
+        list($a, $b) = self::awaitPromise(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]), $identityLoader);
+        $this->assertEquals('A', $a);
+        $this->assertEquals('B', $b);
+        $this->assertEquals([['B']], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group primary-api
+     */
+    public function testDoesNotPrimeKeysThatAlreadyExist()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader();
+
+        $identityLoader->prime('A', 'X');
+
+        $a1 = self::awaitPromise($identityLoader->load('A'), $identityLoader);
+        $b1 = self::awaitPromise($identityLoader->load('B'), $identityLoader);
+        $this->assertEquals('X', $a1);
+        $this->assertEquals('B', $b1);
+
+        $identityLoader->prime('A', 'Y');
+        $identityLoader->prime('B', 'Y');
+
+        $a2 = self::awaitPromise($identityLoader->load('A'), $identityLoader);
+        $b2 = self::awaitPromise($identityLoader->load('B'), $identityLoader);
+        $this->assertEquals('X', $a2);
+        $this->assertEquals('B', $b2);
+
+        $this->assertEquals([['B']], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group primary-api
+     */
+    public function testAllowsForcefullyPrimingTheCache()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader();
+
+        $identityLoader->prime('A', 'X');
+
+        $a1 = self::awaitPromise($identityLoader->load('A'), $identityLoader);
+        $b1 = self::awaitPromise($identityLoader->load('B'), $identityLoader);
+        $this->assertEquals('X', $a1);
+        $this->assertEquals('B', $b1);
+
+        $identityLoader->clear('A')->prime('A', 'Y');
+        $identityLoader->clear('B')->prime('B', 'Y');
+
+        $a2 = self::awaitPromise($identityLoader->load('A'), $identityLoader);
+        $b2 = self::awaitPromise($identityLoader->load('B'), $identityLoader);
+        $this->assertEquals('Y', $a2);
+        $this->assertEquals('Y', $b2);
+
+        $this->assertEquals([['B']], $loadCalls->getArrayCopy());
+    }
+
     private static function getSimpleIdentityLoader()
     {
         return new DataLoader(
@@ -132,7 +283,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         $this->assertInstanceOf(Promise::class, $object);
     }
 
-    private static function awaitPromise(Promise $promise, DataLoader $identityLoader)
+    private static function awaitPromise(PromiseInterface $promise, DataLoader $identityLoader)
     {
         $resolvedValue = null;
 

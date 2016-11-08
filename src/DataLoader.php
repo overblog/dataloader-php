@@ -184,7 +184,9 @@ class DataLoader
 
     public function process()
     {
-        $this->dispatchQueue();
+        if (count($this->queue) > 0) {
+            $this->dispatchQueue();
+        }
     }
 
     private function checkKey($key, $method)
