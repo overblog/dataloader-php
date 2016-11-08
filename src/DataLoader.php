@@ -42,7 +42,6 @@ class DataLoader
         $this->options = $options ?: new Option();
         $this->eventLoop = class_exists('React\\EventLoop\\Factory') ? \React\EventLoop\Factory::create() : null;
         $this->resultCache = $this->options->getCacheMap();
-        $this->primeFromResultCache();
     }
 
     /**
@@ -183,16 +182,6 @@ class DataLoader
         return $this;
     }
 
-    public function primeFromResultCache()
-    {
-        $items = $this->resultCache->getItems();
-
-        foreach ($items as $item) {
-            $data = $item->get();
-            $this->prime($data['key'], $data['value']);
-        }
-    }
-
     public function process()
     {
         $this->dispatchQueue();
@@ -221,7 +210,6 @@ class DataLoader
         } else {
 
         }
-
     }
 
     /**
