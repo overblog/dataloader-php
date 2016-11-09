@@ -488,6 +488,208 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($keyA, $loadCallsArray[1][0]);
     }
 
+    /**
+     * Note: mirrors 'batches multiple requests' above.
+     *
+     * @group accepts-options
+     */
+    public function testMayDisableBatching()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader(new Option(['batch' => false]));
+
+        $promise1 = $identityLoader->load(1);
+        $promise2 = $identityLoader->load(2);
+
+        list($value1, $value2) = self::awaitPromise(\React\Promise\all([$promise1, $promise2]), $identityLoader);
+        $this->assertEquals(1, $value1);
+        $this->assertEquals(2, $value2);
+
+        $this->assertEquals([[1], [2]], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * Note: mirror's 'caches repeated requests' above.
+     *
+     * @group accepts-options
+     */
+    public function testMayDisableCaching()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader(new Option(['cache' => false]));
+
+        list($a, $b) = self::awaitPromise(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]), $identityLoader);
+        $this->assertEquals('A', $a);
+        $this->assertEquals('B', $b);
+        $this->assertEquals([['A', 'B']], $loadCalls->getArrayCopy());
+
+        list($a2, $c) = self::awaitPromise(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('C')]), $identityLoader);
+        $this->assertEquals('A', $a2);
+        $this->assertEquals('C', $c);
+        $this->assertEquals([['A', 'B'], ['A', 'C']], $loadCalls->getArrayCopy());
+
+        list($a3, $b2, $c2) = self::awaitPromise(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B'), $identityLoader->load('C')]), $identityLoader);
+        $this->assertEquals('A', $a3);
+        $this->assertEquals('B', $b2);
+        $this->assertEquals('C', $c2);
+        $this->assertEquals([['A', 'B'], ['A', 'C'], ['A', 'B', 'C']], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group accepts-options
+     * @group accepts-object-key-in-custom-cacheKey-function
+     */
+    public function testAcceptsObjectsWithAComplexKey()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader(new Option(['cacheKeyFn' => [$this, 'cacheKey']]));
+
+        $key1 = (object)['id' => 123];
+        $key2 = (object)['id' => 123];
+
+        $value1 = $identityLoader->await($identityLoader->load($key1));
+        $value2 = $identityLoader->await($identityLoader->load($key2));
+
+        $this->assertEquals([[$key1]], $loadCalls->getArrayCopy());
+        $this->assertEquals($value1, $key1);
+        $this->assertEquals($value2, $key1);
+    }
+
+    /**
+     * @group accepts-options
+     * @group accepts-object-key-in-custom-cacheKey-function
+     */
+    public function testClearsObjectsWithComplexKey()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader(new Option(['cacheKeyFn' => [$this, 'cacheKey']]));
+
+        $key1 = (object)['id' => 123];
+        $key2 = (object)['id' => 123];
+
+        $value1 = $identityLoader->await($identityLoader->load($key1));
+        $identityLoader->clear($key2); // clear equivalent object key
+        $value2 = $identityLoader->await($identityLoader->load($key1));
+
+        $this->assertEquals([[$key1], [$key1]], $loadCalls->getArrayCopy());
+        $this->assertEquals($value1, $key1);
+        $this->assertEquals($value2, $key1);
+    }
+
+    /**
+     * @group accepts-options
+     * @group accepts-object-key-in-custom-cacheKey-function
+     */
+    public function testAcceptsObjectsWithDifferentOrderOfKeys()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader(new Option(['cacheKeyFn' => [$this, 'cacheKey']]));
+
+        $keyA = (object)['a' => 123, 'b' => 321];
+        $keyB = (object)['b' => 321, 'a' => 123];
+
+        $valueA = $identityLoader->await($identityLoader->load($keyA));
+        $valueB = $identityLoader->await($identityLoader->load($keyB));
+
+        $this->assertEquals($valueA, $keyA);
+        $this->assertEquals($valueA, $valueB);
+
+        $loadCallsArray = $loadCalls->getArrayCopy();
+        $this->assertCount(1, $loadCallsArray);
+        $this->assertCount(1, $loadCallsArray[0]);
+        $this->assertEquals($keyA, $loadCallsArray[0][0]);
+    }
+
+    /**
+     * @group accepts-options
+     * @group accepts-object-key-in-custom-cacheKey-function
+     */
+    public function testAllowsPrimingTheCacheWithAnObjectKey()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader(new Option(['cacheKeyFn' => [$this, 'cacheKey']]));
+
+        $key1 = (object)['id' => 123];
+        $key2 = (object)['id' => 123];
+
+        $identityLoader->prime($key1, $key1);
+        $value1 = $identityLoader->await($identityLoader->load($key1));
+        $value2 = $identityLoader->await($identityLoader->load($key2));
+
+        $this->assertEquals([], $loadCalls->getArrayCopy());
+        $this->assertEquals($value1, $key1);
+        $this->assertEquals($value2, $key1);
+    }
+
+    /**
+     * @group accepts-options
+     * @group accepts-custom-cache-map-instance
+     */
+    public function testAcceptsACustomCacheMapImplementation()
+    {
+        $aCustomMap = new SimpleMap();
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader(new Option(['cacheMap' => $aCustomMap]));
+
+        list($valueA, $valueB1) = self::awaitPromise(\React\Promise\all([$identityLoader->load('a'), $identityLoader->load('b')]), $identityLoader);
+        $this->assertEquals('a', $valueA);
+        $this->assertEquals('b', $valueB1);
+        $this->assertEquals([['a', 'b']], $loadCalls->getArrayCopy());
+        $this->assertEquals(['a', 'b'], array_keys($aCustomMap->stash->getArrayCopy()));
+
+        list($valueC, $valueB2) = self::awaitPromise(\React\Promise\all([$identityLoader->load('c'), $identityLoader->load('b')]), $identityLoader);
+        $this->assertEquals('c', $valueC);
+        $this->assertEquals('b', $valueB2);
+        $this->assertEquals([['a', 'b'], ['c']], $loadCalls->getArrayCopy());
+        $this->assertEquals(['a', 'b', 'c'], array_keys($aCustomMap->stash->getArrayCopy()));
+
+        // Supports clear
+
+        $identityLoader->clear('b');
+        $valueB3 = self::awaitPromise($identityLoader->load('b'), $identityLoader);
+        $this->assertEquals('b', $valueB3);;
+        $this->assertEquals([['a', 'b'], ['c'], ['b']], $loadCalls->getArrayCopy());
+        $this->assertEquals(['a', 'c', 'b'], array_keys($aCustomMap->stash->getArrayCopy()));
+
+        // Supports clear all
+
+        $identityLoader->clearAll();
+        $this->assertEquals([], $aCustomMap->stash->getArrayCopy());
+    }
+
+    public function cacheKey($key)
+    {
+        $cacheKey = [];
+        $key = (array)$key;
+        ksort($key);
+        foreach ($key as $k => $value) {
+            $cacheKey[] = $k.':'.$value;
+        }
+
+        return implode(',', $cacheKey);
+    }
+
     private static function getSimpleIdentityLoader()
     {
         return new DataLoader(

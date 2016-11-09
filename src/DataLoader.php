@@ -66,8 +66,7 @@ class DataLoader
         // Determine options
         $shouldBatch = $this->options->shouldBatch();
         $shouldCache = $this->options->shouldCache();
-        $cacheKeyFn = $this->options->getCacheKeyFn();
-        $cacheKey = $cacheKeyFn ? $cacheKeyFn($key) : $key;
+        $cacheKey = $this->getCacheKeyFromKey($key);
 
         // If caching and there is a cache-hit, return cached Promise.
         if ($shouldCache) {
@@ -145,8 +144,9 @@ class DataLoader
     public function clear($key)
     {
         $this->checkKey($key, __METHOD__);
+        $cacheKey = $this->getCacheKeyFromKey($key);
 
-        $this->promiseCache->clear($key);
+        $this->promiseCache->clear($cacheKey);
 
         return $this;
     }
@@ -174,8 +174,7 @@ class DataLoader
     {
         $this->checkKey($key, __METHOD__);
 
-        $cacheKeyFn = $this->options->getCacheKeyFn();
-        $cacheKey = $cacheKeyFn ? $cacheKeyFn($key) : $key;
+        $cacheKey = $this->getCacheKeyFromKey($key);
 
         // Only add the key if it does not already exist.
         if (!$this->promiseCache->has($cacheKey)) {
@@ -225,6 +224,14 @@ class DataLoader
         }
 
         return $resolvedValue;
+    }
+
+    private function getCacheKeyFromKey($key)
+    {
+        $cacheKeyFn = $this->options->getCacheKeyFn();
+        $cacheKey = $cacheKeyFn ? $cacheKeyFn($key) : $key;
+
+        return $cacheKey;
     }
 
     private function checkKey($key, $method)
