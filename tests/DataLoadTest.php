@@ -668,7 +668,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
 
         $identityLoader->clear('b');
         $valueB3 = self::awaitPromise($identityLoader->load('b'), $identityLoader);
-        $this->assertEquals('b', $valueB3);;
+        $this->assertEquals('b', $valueB3);
         $this->assertEquals([['a', 'b'], ['c'], ['b']], $loadCalls->getArrayCopy());
         $this->assertEquals(['a', 'c', 'b'], array_keys($aCustomMap->stash->getArrayCopy()));
 
