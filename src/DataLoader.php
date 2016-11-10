@@ -237,30 +237,34 @@ class DataLoader
      * @param $promise
      * @param bool $unwrap controls whether or not the value of the promise is returned for a fulfilled promise or if an exception is thrown if the promise is rejected
      * @return mixed
+     * @throws \Exception
      */
-    public static function await($promise, $unwrap = true)
+    public static function await($promise = null, $unwrap = true)
     {
-        $resolvedValue = null;
-        $exception = null;
-
-        if (!is_callable([$promise, 'then'])) {
-            throw new \InvalidArgumentException('Promise must have a "then" method.');
-        }
         self::awaitInstances();
 
-        $promise->then(function ($values) use (&$resolvedValue) {
-            $resolvedValue = $values;
-        }, function ($reason) use (&$exception) {
-            $exception = $reason;
-        });
-        if ($exception instanceof \Exception) {
-            if (!$unwrap) {
-                return $exception;
-            }
-            throw $exception;
-        }
+        if (null !== $promise) {
+            $resolvedValue = null;
+            $exception = null;
 
-        return $resolvedValue;
+            if (!is_callable([$promise, 'then'])) {
+                throw new \InvalidArgumentException('Promise must have a "then" method.');
+            }
+
+            $promise->then(function ($values) use (&$resolvedValue) {
+                $resolvedValue = $values;
+            }, function ($reason) use (&$exception) {
+                $exception = $reason;
+            });
+            if ($exception instanceof \Exception) {
+                if (!$unwrap) {
+                    return $exception;
+                }
+                throw $exception;
+            }
+
+            return $resolvedValue;
+        }
     }
 
     private static function awaitInstances()
