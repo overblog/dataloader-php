@@ -34,8 +34,8 @@ class BatchLoadFn
     public function __invoke(array $keys)
     {
         $batchLoadFn = $this->getBatchLoadFn();
-        if (!is_callable($batchLoadFn)) {
-            throw new \RuntimeException('A batchLoadFn should be define.');
+        if (null === $batchLoadFn) {
+            throw new \LogicException('A valid batchLoadFn should be define.');
         }
 
         return $batchLoadFn($keys);

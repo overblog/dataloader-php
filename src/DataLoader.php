@@ -45,12 +45,18 @@ class DataLoader
      */
     private $resolvedPromise;
 
+    /**
+     * @var self[]
+     */
+    private static $instances = [];
+
     public function __construct(BatchLoadFn $batchLoadFn, Option $options = null)
     {
         $this->batchLoadFn = $batchLoadFn;
         $this->options = $options ?: new Option();
         $this->eventLoop = class_exists('React\\EventLoop\\Factory') ? \React\EventLoop\Factory::create() : null;
         $this->promiseCache = $this->options->getCacheMap();
+        self::$instances[] = $this;
     }
 
     /**
@@ -66,8 +72,7 @@ class DataLoader
         // Determine options
         $shouldBatch = $this->options->shouldBatch();
         $shouldCache = $this->options->shouldCache();
-        $cacheKeyFn = $this->options->getCacheKeyFn();
-        $cacheKey = $cacheKeyFn ? $cacheKeyFn($key) : $key;
+        $cacheKey = $this->getCacheKeyFromKey($key);
 
         // If caching and there is a cache-hit, return cached Promise.
         if ($shouldCache) {
@@ -76,30 +81,38 @@ class DataLoader
                 return $cachedPromise;
             }
         }
+        $promise = null;
 
         // Otherwise, produce a new Promise for this value.
-        $promise = new Promise(function ($resolve, $reject) use ($key, $shouldBatch) {
-            $this->queue[] = [
-                'key' => $key,
-                'resolve' => $resolve,
-                'reject' => $reject,
-            ];
+        $promise = new Promise(
+            function ($resolve, $reject) use (&$promise, $key, $shouldBatch) {
+                $this->queue[] = [
+                    'key' => $key,
+                    'resolve' => $resolve,
+                    'reject' => $reject,
+                    'promise' => &$promise,
+                ];
 
-            // Determine if a dispatch of this queue should be scheduled.
-            // A single dispatch should be scheduled per queue at the time when the
-            // queue changes from "empty" to "full".
-            if (count($this->queue) === 1) {
-                if ($shouldBatch) {
-                    // If batching, schedule a task to dispatch the queue.
-                    $this->enqueuePostPromiseJob(function () {
+                // Determine if a dispatch of this queue should be scheduled.
+                // A single dispatch should be scheduled per queue at the time when the
+                // queue changes from "empty" to "full".
+                if (count($this->queue) === 1) {
+                    if ($shouldBatch) {
+                        // If batching, schedule a task to dispatch the queue.
+                        $this->enqueuePostPromiseJob(function () {
+                            $this->dispatchQueue();
+                        });
+                    } else {
+                        // Otherwise dispatch the (queue of one) immediately.
                         $this->dispatchQueue();
-                    });
-                } else {
-                    // Otherwise dispatch the (queue of one) immediately.
-                    $this->dispatchQueue();
+                    }
                 }
-            }
-        });
+            },
+            function (callable $resolve, callable $reject) {
+                // Cancel/abort any running operations like network connections, streams etc.
+
+                $reject(new \RuntimeException('DataLoader destroyed before promise complete.'));
+            });
         // If caching, cache this promise.
         if ($shouldCache) {
             $this->promiseCache->set($cacheKey, $promise);
@@ -145,8 +158,8 @@ class DataLoader
     public function clear($key)
     {
         $this->checkKey($key, __METHOD__);
-
-        $this->promiseCache->clear($key);
+        $cacheKey = $this->getCacheKeyFromKey($key);
+        $this->promiseCache->clear($cacheKey);
 
         return $this;
     }
@@ -160,6 +173,7 @@ class DataLoader
     public function clearAll()
     {
         $this->promiseCache->clearAll();
+
         return $this;
     }
 
@@ -174,8 +188,7 @@ class DataLoader
     {
         $this->checkKey($key, __METHOD__);
 
-        $cacheKeyFn = $this->options->getCacheKeyFn();
-        $cacheKey = $cacheKeyFn ? $cacheKeyFn($key) : $key;
+        $cacheKey = $this->getCacheKeyFromKey($key);
 
         // Only add the key if it does not already exist.
         if (!$this->promiseCache->has($cacheKey)) {
@@ -189,9 +202,33 @@ class DataLoader
         return $this;
     }
 
+    public function __destruct()
+    {
+        if ($this->needProcess()) {
+            foreach ($this->queue as $data) {
+                try {
+                    $data['promise']->cancel();
+                } catch (\Exception $e) {
+                    // no need to do nothing if cancel failed
+                }
+            }
+        }
+        foreach (self::$instances as $i => $instance) {
+            if ($this !== $instance) {
+                continue;
+            }
+            unset(self::$instances[$i]);
+        }
+    }
+
+    public function needProcess()
+    {
+        return count($this->queue) > 0;
+    }
+
     public function process()
     {
-        if (count($this->queue) > 0) {
+        if ($this->needProcess()) {
             $this->dispatchQueue();
         }
     }
@@ -200,9 +237,8 @@ class DataLoader
      * @param $promise
      * @param bool $unwrap controls whether or not the value of the promise is returned for a fulfilled promise or if an exception is thrown if the promise is rejected
      * @return mixed
-     * @throws null
      */
-    public function await($promise, $unwrap = true)
+    public static function await($promise, $unwrap = true)
     {
         $resolvedValue = null;
         $exception = null;
@@ -210,13 +246,13 @@ class DataLoader
         if (!is_callable([$promise, 'then'])) {
             throw new \InvalidArgumentException('Promise must have a "then" method.');
         }
+        self::awaitInstances();
 
         $promise->then(function ($values) use (&$resolvedValue) {
             $resolvedValue = $values;
         }, function ($reason) use (&$exception) {
             $exception = $reason;
         });
-        $this->process();
         if ($exception instanceof \Exception) {
             if (!$unwrap) {
                 return $exception;
@@ -225,6 +261,40 @@ class DataLoader
         }
 
         return $resolvedValue;
+    }
+
+    private static function awaitInstances()
+    {
+        $dataLoaders = self::$instances;
+        if (empty($dataLoaders)) {
+            return;
+        }
+
+        $wait = true;
+
+        while ($wait) {
+            foreach ($dataLoaders as $dataLoader) {
+                try {
+                    if (!$dataLoader || !$dataLoader->needProcess()) {
+                        $wait = false;
+                        continue;
+                    }
+                    $wait = true;
+                    $dataLoader->process();
+                } catch (\Exception $e) {
+                    $wait = false;
+                    continue;
+                }
+            }
+        }
+    }
+
+    private function getCacheKeyFromKey($key)
+    {
+        $cacheKeyFn = $this->options->getCacheKeyFn();
+        $cacheKey = $cacheKeyFn ? $cacheKeyFn($key) : $key;
+
+        return $cacheKey;
     }
 
     private function checkKey($key, $method)
@@ -290,8 +360,8 @@ class DataLoader
         // Assert the expected response from batchLoadFn
         if (!$batchPromise || !is_callable([$batchPromise, 'then'])) {
             $this->failedDispatch($queue, new \RuntimeException(
-                'DataLoader must be constructed with a function which accepts '.
-                'Array<key> and returns Promise<Array<value>>, but the function did '.
+                'DataLoader must be constructed with a function which accepts ' .
+                'Array<key> and returns Promise<Array<value>>, but the function did ' .
                 sprintf('not return a Promise: %s.', gettype($batchPromise))
             ));
 
