@@ -16,7 +16,7 @@ use React\Promise\Promise;
 class DataLoader
 {
     /**
-     * @var BatchLoadFn
+     * @var callable
      */
     private $batchLoadFn;
 
@@ -36,25 +36,14 @@ class DataLoader
     private $queue = [];
 
     /**
-     * @var null|\React\EventLoop\LoopInterface
-     */
-    private $eventLoop;
-
-    /**
-     * @var Promise
-     */
-    private $resolvedPromise;
-
-    /**
      * @var self[]
      */
     private static $instances = [];
 
-    public function __construct(BatchLoadFn $batchLoadFn, Option $options = null)
+    public function __construct(callable $batchLoadFn, Option $options = null)
     {
         $this->batchLoadFn = $batchLoadFn;
         $this->options = $options ?: new Option();
-        $this->eventLoop = class_exists('React\\EventLoop\\Factory') ? \React\EventLoop\Factory::create() : null;
         $this->promiseCache = $this->options->getCacheMap();
         self::$instances[] = $this;
     }
@@ -97,12 +86,7 @@ class DataLoader
                 // A single dispatch should be scheduled per queue at the time when the
                 // queue changes from "empty" to "full".
                 if (count($this->queue) === 1) {
-                    if ($shouldBatch) {
-                        // If batching, schedule a task to dispatch the queue.
-                        $this->enqueuePostPromiseJob(function () {
-                            $this->dispatchQueue();
-                        });
-                    } else {
+                    if (!$shouldBatch) {
                         // Otherwise dispatch the (queue of one) immediately.
                         $this->dispatchQueue();
                     }
@@ -124,11 +108,11 @@ class DataLoader
     /**
      * Loads multiple keys, promising an array of values:
      *
-     *     [$a, $b] = $myLoader->loadMany(['a', 'b']);
+     *     list($a, $b) = $myLoader->loadMany(['a', 'b']);
      *
      * This is equivalent to the more verbose:
      *
-     *     [$a, $b] = \React\Promise\all([
+     *     list($a, $b) = \React\Promise\all([
      *       $myLoader->load('a'),
      *       $myLoader->load('b')
      *     ]);
@@ -139,7 +123,7 @@ class DataLoader
     public function loadMany($keys)
     {
         if (!is_array($keys) && !$keys instanceof \Traversable) {
-            throw new \InvalidArgumentException(sprintf('The %s function must be called with Array<key> but got: %s.', __METHOD__, gettype($keys)));
+            throw new \InvalidArgumentException(sprintf('The "%s" method must be called with Array<key> but got: %s.', __METHOD__, gettype($keys)));
         }
         return \React\Promise\all(array_map(
             function ($key) {
@@ -207,7 +191,9 @@ class DataLoader
         if ($this->needProcess()) {
             foreach ($this->queue as $data) {
                 try {
-                    $data['promise']->cancel();
+                    /** @var Promise $promise */
+                    $promise = $data['promise'];
+                    $promise->cancel();
                 } catch (\Exception $e) {
                     // no need to do nothing if cancel failed
                 }
@@ -243,51 +229,45 @@ class DataLoader
     {
         self::awaitInstances();
 
-        if (null !== $promise) {
-            $resolvedValue = null;
-            $exception = null;
-
-            if (!is_callable([$promise, 'then'])) {
-                throw new \InvalidArgumentException('Promise must have a "then" method.');
-            }
-
-            $promise->then(function ($values) use (&$resolvedValue) {
-                $resolvedValue = $values;
-            }, function ($reason) use (&$exception) {
-                $exception = $reason;
-            });
-            if ($exception instanceof \Exception) {
-                if (!$unwrap) {
-                    return $exception;
-                }
-                throw $exception;
-            }
-
-            return $resolvedValue;
+        if (null === $promise) {
+            return null;
         }
+        $resolvedValue = null;
+        $exception = null;
+
+        if (!is_callable([$promise, 'then'])) {
+            throw new \InvalidArgumentException(sprintf('The "%s" method must be called with a Promise ("then" method).', __METHOD__));
+        }
+
+        $promise->then(function ($values) use (&$resolvedValue) {
+            $resolvedValue = $values;
+        }, function ($reason) use (&$exception) {
+            $exception = $reason;
+        });
+        if ($exception instanceof \Exception) {
+            if (!$unwrap) {
+                return $exception;
+            }
+            throw $exception;
+        }
+
+        return $resolvedValue;
     }
 
     private static function awaitInstances()
     {
         $dataLoaders = self::$instances;
-        if (empty($dataLoaders)) {
-            return;
-        }
+        if (!empty($dataLoaders)) {
+            $wait = true;
 
-        $wait = true;
-
-        while ($wait) {
-            foreach ($dataLoaders as $dataLoader) {
-                try {
+            while ($wait) {
+                foreach ($dataLoaders as $dataLoader) {
                     if (!$dataLoader || !$dataLoader->needProcess()) {
                         $wait = false;
                         continue;
                     }
                     $wait = true;
                     $dataLoader->process();
-                } catch (\Exception $e) {
-                    $wait = false;
-                    continue;
                 }
             }
         }
@@ -305,24 +285,8 @@ class DataLoader
     {
         if (null === $key) {
             throw new \InvalidArgumentException(
-                sprintf('The %s function must be called with a value, but got: %s.', $method, gettype($key))
+                sprintf('The "%s" method must be called with a value, but got: %s.', $method, gettype($key))
             );
-        }
-    }
-
-    /**
-     * @param $fn
-     */
-    private function enqueuePostPromiseJob($fn)
-    {
-        if (!$this->resolvedPromise) {
-            $this->resolvedPromise = \React\Promise\resolve();
-        }
-
-        if ($this->eventLoop) {
-            $this->resolvedPromise->then(function () use ($fn) {
-                $this->eventLoop->nextTick($fn);
-            });
         }
     }
 

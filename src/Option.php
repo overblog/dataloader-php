@@ -11,8 +11,6 @@
 
 namespace Overblog\DataLoader;
 
-use Symfony\Component\Cache\Adapter\AdapterInterface;
-
 class Option
 {
     /**
@@ -52,9 +50,8 @@ class Option
 
         $options = array_merge($defaultOptions, $params);
 
-        foreach ($options as $name => $value) {
-            $method = 'set'.ucfirst($name);
-            $this->$method($value);
+        foreach ($options as $property => $value) {
+            $this->$property = $value;
         }
     }
 
@@ -67,31 +64,11 @@ class Option
     }
 
     /**
-     * @param boolean $batch
-     * @return Option
-     */
-    public function setBatch($batch)
-    {
-        $this->batch = $batch;
-        return $this;
-    }
-
-    /**
      * @return int
      */
     public function getMaxBatchSize()
     {
         return $this->maxBatchSize;
-    }
-
-    /**
-     * @param int $maxBatchSize
-     * @return Option
-     */
-    public function setMaxBatchSize($maxBatchSize)
-    {
-        $this->maxBatchSize = $maxBatchSize;
-        return $this;
     }
 
     /**
@@ -103,16 +80,6 @@ class Option
     }
 
     /**
-     * @param boolean $cache
-     * @return Option
-     */
-    public function setCache($cache)
-    {
-        $this->cache = $cache;
-        return $this;
-    }
-
-    /**
      * @return callable
      */
     public function getCacheKeyFn()
@@ -121,30 +88,10 @@ class Option
     }
 
     /**
-     * @param callable $cacheKeyFn
-     * @return Option
-     */
-    public function setCacheKeyFn(callable $cacheKeyFn = null)
-    {
-        $this->cacheKeyFn = $cacheKeyFn;
-        return $this;
-    }
-
-    /**
      * @return CacheMap
      */
     public function getCacheMap()
     {
         return $this->cacheMap;
-    }
-
-    /**
-     * @param CacheMap $cacheMap
-     * @return Option
-     */
-    public function setCacheMap(CacheMap $cacheMap)
-    {
-        $this->cacheMap = $cacheMap;
-        return $this;
     }
 }

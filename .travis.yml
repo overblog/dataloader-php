@@ -29,5 +29,4 @@ install: composer update --prefer-dist --no-interaction
 script: if [ "$TRAVIS_PHP_VERSION" == "5.6" ]; then phpunit -d xdebug.max_nesting_level=1000 --debug --coverage-clover build/logs/clover.xml; else phpunit --debug; fi
 
 after_success:
-    - composer require "satooshi/php-coveralls:^1.0"
-    - travis_retry php vendor/bin/coveralls -v
+    - if [ "$TRAVIS_PHP_VERSION" == "5.6" ]; then composer require "satooshi/php-coveralls:^1.0" && travis_retry php vendor/bin/coveralls -v; fi

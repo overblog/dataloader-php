@@ -11,8 +11,7 @@ data sources such as databases or web services via batching and caching.
 
 ## Requirements
 
-* This library require [React/Promise](https://github.com/reactphp/promise) and PHP >= 5.5 to works.
-* The [React/EventLoop](https://github.com/reactphp/event-loop) component are **totally optional** (see `await` method for more details).
+This library require [React/Promise](https://github.com/reactphp/promise) and PHP >= 5.5 to works.
 
 ## Getting Started
 
@@ -33,15 +32,15 @@ use Overblog\DataLoader\DataLoader;
 
 $myBatchGetUsers = function ($keys) { /* ... */ };
 
-$userLoader = new DataLoader(new BatchLoadFn($myBatchGetUsers));
+$userLoader = new DataLoader($myBatchGetUsers);
 ```
 
-A batch loading instance accepts a callable callback that accepts an Array of keys, and returns a Promise which
+A batch loading callable / callback accepts an Array of keys, and returns a Promise which
 resolves to an Array of values.
 
 Then load individual values from the loader. DataLoaderPHP will coalesce all
-individual loads which occur within a single frame of execution (a single tick
-of the event loop if install or using `await` method) and then call your batch function with all requested keys.
+individual loads which occur within a single frame of execution (using `await` method) 
+and then call your batch function with all requested keys.
 
 ```php
 $userLoader->load(1)
@@ -80,7 +79,7 @@ your application:
 
 ```php
 $promise1A = $userLoader->load(1);
-$promise1B = userLoader->load(1);
+$promise1B = $userLoader->load(1);
 var_dump($promise1A === $promise1B); // bool(true)
 ```
 
@@ -94,7 +93,7 @@ Here's a simple example using SQL UPDATE to illustrate.
 ```php
 $sql = 'UPDATE users WHERE id=4 SET username="zuck"';
 if (true === $conn->query($sql)) {
-    $userLoader->clear(4);
+  $userLoader->clear(4);
 }
 ```
 
@@ -123,12 +122,11 @@ Each `DataLoaderPHP` instance contains a unique memoized cache. Use caution when
 used in long-lived applications or those which serve many users with different
 access permissions and consider creating a new instance per web request.
 
-##### `new DataLoader(batchLoadFn $batchLoadFn [, Option $options])`
+##### `new DataLoader(callable $batchLoadFn [, Option $options])`
 
 Create a new `DataLoaderPHP` given a batch loading instance and options.
 
-- *$batchLoadFn*: A object which accepts a callable callback that accepts an Array of keys,
-    and returns a Promise which resolves to an Array of values.
+- *$batchLoadFn*: A callable / callback which accepts an Array of keys, and returns a Promise which resolves to an Array of values.
 - *$options*: An optional object of options:
 
   - *batch*: Default `true`. Set to `false` to disable batching, instead
@@ -164,7 +162,7 @@ list($a, $b) = DataLoader::await($myLoader->loadMany(['a', 'b']);
 This is equivalent to the more verbose:
 
 ```js
-list($a, $b) = await DataLoader::await(\React\Promise\all([
+list($a, $b) = DataLoader::await(\React\Promise\all([
   $myLoader->load('a'),
   $myLoader->load('b')
 ]);
