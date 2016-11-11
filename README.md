@@ -33,10 +33,10 @@ use Overblog\DataLoader\DataLoader;
 
 $myBatchGetUsers = function ($keys) { /* ... */ };
 
-$userLoader = new DataLoader(new BatchLoadFn($myBatchGetUsers));
+$userLoader = new DataLoader($myBatchGetUsers);
 ```
 
-A batch loading instance accepts a callable callback that accepts an Array of keys, and returns a Promise which
+A batch loading callable / callback accepts an Array of keys, and returns a Promise which
 resolves to an Array of values.
 
 Then load individual values from the loader. DataLoaderPHP will coalesce all
@@ -123,12 +123,11 @@ Each `DataLoaderPHP` instance contains a unique memoized cache. Use caution when
 used in long-lived applications or those which serve many users with different
 access permissions and consider creating a new instance per web request.
 
-##### `new DataLoader(batchLoadFn $batchLoadFn [, Option $options])`
+##### `new DataLoader(callable $batchLoadFn [, Option $options])`
 
 Create a new `DataLoaderPHP` given a batch loading instance and options.
 
-- *$batchLoadFn*: A object which accepts a callable callback that accepts an Array of keys,
-    and returns a Promise which resolves to an Array of values.
+- *$batchLoadFn*: A callable / callback which accepts an Array of keys, and returns a Promise which resolves to an Array of values.
 - *$options*: An optional object of options:
 
   - *batch*: Default `true`. Set to `false` to disable batching, instead

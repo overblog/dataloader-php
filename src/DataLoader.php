@@ -16,7 +16,7 @@ use React\Promise\Promise;
 class DataLoader
 {
     /**
-     * @var BatchLoadFn
+     * @var callable
      */
     private $batchLoadFn;
 

@@ -11,7 +11,6 @@
 
 namespace Overblog\DataLoader\Tests;
 
-use Overblog\DataLoader\BatchLoadFn;
 use Overblog\DataLoader\DataLoader;
 use Overblog\DataLoader\Option;
 use React\Promise\Promise;
@@ -275,7 +274,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
     public function testResolvesToErrorToIndicateFailure()
     {
         /**
-         * @var DataLoader $identityLoader
+         * @var DataLoader $evenLoader
          * @var \ArrayObject $loadCalls
          */
         list($evenLoader, $loadCalls) = self::eventLoader();
@@ -300,7 +299,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
     public function testCanRepresentFailuresAndSuccessesSimultaneously()
     {
         /**
-         * @var DataLoader $identityLoader
+         * @var DataLoader $evenLoader
          * @var \ArrayObject $loadCalls
          */
         list($evenLoader, $loadCalls) = self::eventLoader();
@@ -426,12 +425,13 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
      */
     public function testPropagatesErrorToAllLoads()
     {
-        $loadCalls = new \ArrayObject();
-
-        $failLoader = new DataLoader(new BatchLoadFn(function ($keys) use (&$loadCalls) {
-            $loadCalls[] = $keys;
+        /**
+         * @var DataLoader $failLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($failLoader, $loadCalls) = self::idLoader(null, function () {
             return \React\Promise\reject(new \Exception('I am a terrible loader'));
-        }));
+        });
 
         $promise1 = $failLoader->load(1);
         $promise2 = $failLoader->load(2);
@@ -776,6 +776,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
          * @var DataLoader $loader
          */
         list($loader) = self::idLoader();
+        /** @var \Exception|null $exception */
         $exception = null;
         $loader->load('A1')->then(null, function ($reason) use (&$exception) {
             $exception = $reason;
@@ -825,20 +826,17 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
     private static function idLoader(Option $options = null, callable $batchLoadFnCallBack = null)
     {
         $loadCalls = new \ArrayObject();
-        $batchLoadFn = new BatchLoadFn();
         if (null === $batchLoadFnCallBack) {
             $batchLoadFnCallBack = function ($keys) {
                 return \React\Promise\resolve($keys);
             };
         }
 
-        $batchLoadFn->setBatchLoadFn(function ($keys) use (&$loadCalls, $batchLoadFnCallBack) {
+        $identityLoader = new DataLoader(function ($keys) use (&$loadCalls, $batchLoadFnCallBack) {
             $loadCalls[] = $keys;
 
             return $batchLoadFnCallBack($keys);
-        });
-
-        $identityLoader = new DataLoader($batchLoadFn, $options);
+        }, $options);
 
         return [$identityLoader, $loadCalls];
     }
