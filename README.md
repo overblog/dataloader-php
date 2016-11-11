@@ -11,8 +11,7 @@ data sources such as databases or web services via batching and caching.
 
 ## Requirements
 
-* This library require [React/Promise](https://github.com/reactphp/promise) and PHP >= 5.5 to works.
-* The [React/EventLoop](https://github.com/reactphp/event-loop) component are **totally optional** (see `await` method for more details).
+This library require [React/Promise](https://github.com/reactphp/promise) and PHP >= 5.5 to works.
 
 ## Getting Started
 
@@ -40,8 +39,8 @@ A batch loading callable / callback accepts an Array of keys, and returns a Prom
 resolves to an Array of values.
 
 Then load individual values from the loader. DataLoaderPHP will coalesce all
-individual loads which occur within a single frame of execution (a single tick
-of the event loop if install or using `await` method) and then call your batch function with all requested keys.
+individual loads which occur within a single frame of execution (using `await` method) 
+and then call your batch function with all requested keys.
 
 ```php
 $userLoader->load(1)

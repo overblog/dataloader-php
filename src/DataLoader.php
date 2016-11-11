@@ -36,25 +36,14 @@ class DataLoader
     private $queue = [];
 
     /**
-     * @var null|\React\EventLoop\LoopInterface
-     */
-    private $eventLoop;
-
-    /**
-     * @var Promise
-     */
-    private $resolvedPromise;
-
-    /**
      * @var self[]
      */
     private static $instances = [];
 
-    public function __construct(BatchLoadFn $batchLoadFn, Option $options = null)
+    public function __construct(callable $batchLoadFn, Option $options = null)
     {
         $this->batchLoadFn = $batchLoadFn;
         $this->options = $options ?: new Option();
-        $this->eventLoop = class_exists('React\\EventLoop\\Factory') ? \React\EventLoop\Factory::create() : null;
         $this->promiseCache = $this->options->getCacheMap();
         self::$instances[] = $this;
     }
@@ -97,12 +86,7 @@ class DataLoader
                 // A single dispatch should be scheduled per queue at the time when the
                 // queue changes from "empty" to "full".
                 if (count($this->queue) === 1) {
-                    if ($shouldBatch) {
-                        // If batching, schedule a task to dispatch the queue.
-                        $this->enqueuePostPromiseJob(function () {
-                            $this->dispatchQueue();
-                        });
-                    } else {
+                    if (!$shouldBatch) {
                         // Otherwise dispatch the (queue of one) immediately.
                         $this->dispatchQueue();
                     }
@@ -124,11 +108,11 @@ class DataLoader
     /**
      * Loads multiple keys, promising an array of values:
      *
-     *     [$a, $b] = $myLoader->loadMany(['a', 'b']);
+     *     list($a, $b) = $myLoader->loadMany(['a', 'b']);
      *
      * This is equivalent to the more verbose:
      *
-     *     [$a, $b] = \React\Promise\all([
+     *     list($a, $b) = \React\Promise\all([
      *       $myLoader->load('a'),
      *       $myLoader->load('b')
      *     ]);
@@ -207,7 +191,9 @@ class DataLoader
         if ($this->needProcess()) {
             foreach ($this->queue as $data) {
                 try {
-                    $data['promise']->cancel();
+                    /** @var Promise $promise */
+                    $promise = $data['promise'];
+                    $promise->cancel();
                 } catch (\Exception $e) {
                     // no need to do nothing if cancel failed
                 }
@@ -307,22 +293,6 @@ class DataLoader
             throw new \InvalidArgumentException(
                 sprintf('The %s function must be called with a value, but got: %s.', $method, gettype($key))
             );
-        }
-    }
-
-    /**
-     * @param $fn
-     */
-    private function enqueuePostPromiseJob($fn)
-    {
-        if (!$this->resolvedPromise) {
-            $this->resolvedPromise = \React\Promise\resolve();
-        }
-
-        if ($this->eventLoop) {
-            $this->resolvedPromise->then(function () use ($fn) {
-                $this->eventLoop->nextTick($fn);
-            });
         }
     }
 
