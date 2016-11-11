@@ -80,7 +80,7 @@ your application:
 
 ```php
 $promise1A = $userLoader->load(1);
-$promise1B = userLoader->load(1);
+$promise1B = $userLoader->load(1);
 var_dump($promise1A === $promise1B); // bool(true)
 ```
 
@@ -94,7 +94,7 @@ Here's a simple example using SQL UPDATE to illustrate.
 ```php
 $sql = 'UPDATE users WHERE id=4 SET username="zuck"';
 if (true === $conn->query($sql)) {
-    $userLoader->clear(4);
+  $userLoader->clear(4);
 }
 ```
 
@@ -164,7 +164,7 @@ list($a, $b) = DataLoader::await($myLoader->loadMany(['a', 'b']);
 This is equivalent to the more verbose:
 
 ```js
-list($a, $b) = await DataLoader::await(\React\Promise\all([
+list($a, $b) = DataLoader::await(\React\Promise\all([
   $myLoader->load('a'),
   $myLoader->load('b')
 ]);
