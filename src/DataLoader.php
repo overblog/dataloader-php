@@ -123,7 +123,7 @@ class DataLoader
     public function loadMany($keys)
     {
         if (!is_array($keys) && !$keys instanceof \Traversable) {
-            throw new \InvalidArgumentException(sprintf('The %s function must be called with Array<key> but got: %s.', __METHOD__, gettype($keys)));
+            throw new \InvalidArgumentException(sprintf('The "%s" method must be called with Array<key> but got: %s.', __METHOD__, gettype($keys)));
         }
         return \React\Promise\all(array_map(
             function ($key) {
@@ -229,51 +229,45 @@ class DataLoader
     {
         self::awaitInstances();
 
-        if (null !== $promise) {
-            $resolvedValue = null;
-            $exception = null;
-
-            if (!is_callable([$promise, 'then'])) {
-                throw new \InvalidArgumentException('Promise must have a "then" method.');
-            }
-
-            $promise->then(function ($values) use (&$resolvedValue) {
-                $resolvedValue = $values;
-            }, function ($reason) use (&$exception) {
-                $exception = $reason;
-            });
-            if ($exception instanceof \Exception) {
-                if (!$unwrap) {
-                    return $exception;
-                }
-                throw $exception;
-            }
-
-            return $resolvedValue;
+        if (null === $promise) {
+            return null;
         }
+        $resolvedValue = null;
+        $exception = null;
+
+        if (!is_callable([$promise, 'then'])) {
+            throw new \InvalidArgumentException(sprintf('The "%s" method must be called with a Promise ("then" method).', __METHOD__));
+        }
+
+        $promise->then(function ($values) use (&$resolvedValue) {
+            $resolvedValue = $values;
+        }, function ($reason) use (&$exception) {
+            $exception = $reason;
+        });
+        if ($exception instanceof \Exception) {
+            if (!$unwrap) {
+                return $exception;
+            }
+            throw $exception;
+        }
+
+        return $resolvedValue;
     }
 
     private static function awaitInstances()
     {
         $dataLoaders = self::$instances;
-        if (empty($dataLoaders)) {
-            return;
-        }
+        if (!empty($dataLoaders)) {
+            $wait = true;
 
-        $wait = true;
-
-        while ($wait) {
-            foreach ($dataLoaders as $dataLoader) {
-                try {
+            while ($wait) {
+                foreach ($dataLoaders as $dataLoader) {
                     if (!$dataLoader || !$dataLoader->needProcess()) {
                         $wait = false;
                         continue;
                     }
                     $wait = true;
                     $dataLoader->process();
-                } catch (\Exception $e) {
-                    $wait = false;
-                    continue;
                 }
             }
         }
@@ -291,7 +285,7 @@ class DataLoader
     {
         if (null === $key) {
             throw new \InvalidArgumentException(
-                sprintf('The %s function must be called with a value, but got: %s.', $method, gettype($key))
+                sprintf('The "%s" method must be called with a value, but got: %s.', $method, gettype($key))
             );
         }
     }

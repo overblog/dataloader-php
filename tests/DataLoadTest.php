@@ -279,12 +279,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
          */
         list($evenLoader, $loadCalls) = self::eventLoader();
 
-        $caughtError = null;
-        try {
-            DataLoader::await($evenLoader->load(1));
-        } catch (\Exception $error) {
-            $caughtError = $error;
-        }
+        $caughtError = DataLoader::await($evenLoader->load(1), false);
         $this->assertInstanceOf(\Exception::class, $caughtError);
         $this->assertEquals($caughtError->getMessage(), 'Odd: 1');
         $value2 = DataLoader::await($evenLoader->load(2));
@@ -308,11 +303,10 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         $promise2 = $evenLoader->load(2);
 
         $caughtError = null;
-        try {
-            DataLoader::await($promise1);
-        } catch (\Exception $error) {
+        $promise1->then(null, function ($error) use (&$caughtError) {
             $caughtError = $error;
-        }
+        });
+        DataLoader::await();
         $this->assertInstanceOf(\Exception::class, $caughtError);
         $this->assertEquals($caughtError->getMessage(), 'Odd: 1');
 
@@ -786,6 +780,11 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
 
         $this->assertInstanceOf(\RuntimeException::class, $exception);
         $this->assertEquals($exception->getMessage(), 'DataLoader destroyed before promise complete.');
+    }
+
+    public function testCallingAwaitFunctionWhenNoInstanceOfDataLoaderShouldNotThrowError()
+    {
+        DataLoader::await();
     }
 
     public function cacheKey($key)
