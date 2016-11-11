@@ -221,12 +221,12 @@ class DataLoader
         }
     }
 
-    public function needProcess()
+    protected function needProcess()
     {
         return count($this->queue) > 0;
     }
 
-    public function process()
+    protected function process()
     {
         if ($this->needProcess()) {
             $this->dispatchQueue();
