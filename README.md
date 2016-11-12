@@ -45,15 +45,15 @@ and then call your batch function with all requested keys.
 ```php
 $userLoader->load(1)
   ->then(function ($user) use ($userLoader) { $userLoader->load($user->invitedByID); })
-  ->then(function ($invitedBy) { echo "User 1 was invited by $invitedBy"; }));
+  ->then(function ($invitedBy) { echo "User 1 was invited by $invitedBy"; });
 
 // Elsewhere in your application
 $userLoader->load(2)
   ->then(function ($user) use ($userLoader) { $userLoader->load($user->invitedByID); })
-  ->then(function ($invitedBy) { echo "User 2 was invited by $invitedBy"; }));
+  ->then(function ($invitedBy) { echo "User 2 was invited by $invitedBy"; });
 
 // Synchronously waits on the promise to complete, if not using EventLoop.
-$userLoader->await();
+$userLoader->await(); // or `DataLoader::await()`
 ```
 A naive application may have issued four round-trips to a backend for the
 required information, but with DataLoaderPHP this application will make at most
@@ -139,7 +139,7 @@ Create a new `DataLoaderPHP` given a batch loading instance and options.
     creating a new Promise and new key in the `batchLoadFn` for every load.
 
   - *cacheKeyFn*: A function to produce a cache key for a given load key.
-    Defaults to `key => key`. Useful to provide when JavaScript objects are keys
+    Defaults to `key`. Useful to provide when an objects are keys
     and two similarly shaped objects should be considered equivalent.
 
   - *cacheMap*: An instance of `CacheMap` to be
@@ -156,7 +156,7 @@ Loads a key, returning a `Promise` for the value represented by that key.
 Loads multiple keys, promising an array of values:
 
 ```php
-list($a, $b) = DataLoader::await($myLoader->loadMany(['a', 'b']);
+list($a, $b) = DataLoader::await($myLoader->loadMany(['a', 'b']));
 ```
 
 This is equivalent to the more verbose:
@@ -165,7 +165,7 @@ This is equivalent to the more verbose:
 list($a, $b) = DataLoader::await(\React\Promise\all([
   $myLoader->load('a'),
   $myLoader->load('b')
-]);
+]));
 ```
 
 - *$keys*: An array of key values to load.
@@ -187,7 +187,7 @@ method chaining.
 
 Primes the cache with the provided key and value. If the key already exists, no
 change is made. (To forcefully prime the cache, clear the key first with
-`$loader->clear($key)->prime($key, $value)`.) Returns itself for method chaining.
+`$loader->clear($key)->prime($key, $value)`. Returns itself for method chaining.
 
 ##### `static await([$promise][, $unwrap])`
 
