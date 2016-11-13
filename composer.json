@@ -2,6 +2,8 @@
     "name": "overblog/dataloader-php",
     "type": "library",
     "license": "MIT",
+    "description": "DataLoaderPhp is a generic utility to be used as part of your application's data fetching layer to provide a simplified and consistent API over various remote data sources such as databases or web services via batching and caching.",
+    "keywords": ["dataLoader", "caching", "batching"],
     "autoload": {
         "psr-4": {
             "Overblog\\DataLoader\\": "src/"
@@ -14,7 +16,7 @@
     },
     "require": {
         "php": "^5.5|^7.0",
-        "react/promise": "^2.4"
+        "mcg-web/promise-factory": "^0.2"
     },
     "require-dev": {
         "phpunit/phpunit": "^4.1|^5.1"

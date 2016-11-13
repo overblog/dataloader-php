@@ -13,7 +13,7 @@ namespace Overblog\DataLoader\Tests;
 
 use Overblog\DataLoader\DataLoader;
 
-class AbuseTest extends \PHPUnit_Framework_TestCase
+class AbuseTest extends TestCase
 {
     /**
      * @group provides-descriptive-error-messages-for-api-abuse
@@ -75,7 +75,7 @@ class AbuseTest extends \PHPUnit_Framework_TestCase
     public function testBatchFunctionMustReturnAPromiseOfAnArrayNotNull()
     {
         DataLoader::await(self::idLoader(function () {
-            return \React\Promise\resolve();
+            return self::$promiseFactory->createResolve(null);
         })->load(1));
     }
 
@@ -87,18 +87,31 @@ class AbuseTest extends \PHPUnit_Framework_TestCase
     public function testBatchFunctionMustPromiseAnArrayOfCorrectLength()
     {
         DataLoader::await(self::idLoader(function () {
-            return \React\Promise\resolve([]);
+            return self::$promiseFactory->createResolve([]);
         })->load(1));
     }
 
     /**
      * @group provides-descriptive-error-messages-for-api-abuse
      * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage The "Overblog\DataLoader\DataLoader::await" method must be called with a Promise ("then" method).
+     * @expectedExceptionMessage ::await" method must be called with a Promise ("then" method).
+     * @runInSeparateProcess
      */
     public function testAwaitPromiseMustHaveAThenMethod()
     {
+        self::idLoader();
         DataLoader::await([]);
+    }
+
+    /**
+     * @group provides-descriptive-error-messages-for-api-abuse
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessage Found no active DataLoader instance.
+     * @runInSeparateProcess
+     */
+    public function testAwaitWithoutNoInstance()
+    {
+        DataLoader::await();
     }
 
     /**
@@ -109,10 +122,10 @@ class AbuseTest extends \PHPUnit_Framework_TestCase
     {
         if (null === $batchLoadFn) {
             $batchLoadFn = function ($keys) {
-                return \React\Promise\all($keys);
+                return self::$promiseFactory->createAll($keys);
             };
         }
 
-        return new DataLoader($batchLoadFn);
+        return new DataLoader($batchLoadFn, self::$promiseFactory);
     }
 }

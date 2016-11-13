@@ -11,7 +11,7 @@
 
 namespace Overblog\DataLoader;
 
-use React\Promise\Promise;
+use McGWeb\PromiseFactory\PromiseFactoryInterface;
 
 class DataLoader
 {
@@ -31,7 +31,7 @@ class DataLoader
     private $promiseCache;
 
     /**
-     * @var Promise[]
+     * @var array
      */
     private $queue = [];
 
@@ -40,9 +40,15 @@ class DataLoader
      */
     private static $instances = [];
 
-    public function __construct(callable $batchLoadFn, Option $options = null)
+    /**
+     * @var PromiseFactoryInterface
+     */
+    private $promiseFactory;
+
+    public function __construct(callable $batchLoadFn, PromiseFactoryInterface $promiseFactory,  Option $options = null)
     {
         $this->batchLoadFn = $batchLoadFn;
+        $this->promiseFactory = $promiseFactory;
         $this->options = $options ?: new Option();
         $this->promiseCache = $this->options->getCacheMap();
         self::$instances[] = $this;
@@ -53,7 +59,7 @@ class DataLoader
      *
      * @param string $key
      *
-     * @return Promise
+     * @return mixed return a Promise
      */
     public function load($key)
     {
@@ -70,33 +76,34 @@ class DataLoader
                 return $cachedPromise;
             }
         }
-        $promise = null;
 
         // Otherwise, produce a new Promise for this value.
-        $promise = new Promise(
-            function ($resolve, $reject) use (&$promise, $key, $shouldBatch) {
-                $this->queue[] = [
-                    'key' => $key,
-                    'resolve' => $resolve,
-                    'reject' => $reject,
-                    'promise' => &$promise,
-                ];
-
-                // Determine if a dispatch of this queue should be scheduled.
-                // A single dispatch should be scheduled per queue at the time when the
-                // queue changes from "empty" to "full".
-                if (count($this->queue) === 1) {
-                    if (!$shouldBatch) {
-                        // Otherwise dispatch the (queue of one) immediately.
-                        $this->dispatchQueue();
-                    }
-                }
-            },
-            function (callable $resolve, callable $reject) {
+        $promise = $this->getPromiseFactory()->create(
+            $resolve,
+            $reject,
+            function () {
                 // Cancel/abort any running operations like network connections, streams etc.
 
-                $reject(new \RuntimeException('DataLoader destroyed before promise complete.'));
-            });
+                throw new \RuntimeException('DataLoader destroyed before promise complete.');
+            }
+        );
+
+        $this->queue[] = [
+            'key' => $key,
+            'resolve' => $resolve,
+            'reject' => $reject,
+            'promise' => $promise,
+        ];
+
+        // Determine if a dispatch of this queue should be scheduled.
+        // A single dispatch should be scheduled per queue at the time when the
+        // queue changes from "empty" to "full".
+        if (count($this->queue) === 1) {
+            if (!$shouldBatch) {
+                // Otherwise dispatch the (queue of one) immediately.
+                $this->dispatchQueue();
+            }
+        }
         // If caching, cache this promise.
         if ($shouldCache) {
             $this->promiseCache->set($cacheKey, $promise);
@@ -118,14 +125,14 @@ class DataLoader
      *     ]);
      * @param array $keys
      *
-     * @return Promise
+     * @return mixed return a Promise
      */
     public function loadMany($keys)
     {
         if (!is_array($keys) && !$keys instanceof \Traversable) {
             throw new \InvalidArgumentException(sprintf('The "%s" method must be called with Array<key> but got: %s.', __METHOD__, gettype($keys)));
         }
-        return \React\Promise\all(array_map(
+        return $this->getPromiseFactory()->createAll(array_map(
             function ($key) {
                 return $this->load($key);
             },
@@ -178,7 +185,7 @@ class DataLoader
         if (!$this->promiseCache->has($cacheKey)) {
             // Cache a rejected promise if the value is an Error, in order to match
             // the behavior of load(key).
-            $promise = $value instanceof \Exception ? \React\Promise\reject($value) : \React\Promise\resolve($value);
+            $promise = $value instanceof \Exception ? $this->getPromiseFactory()->createReject($value) : $this->getPromiseFactory()->createResolve($value);
 
             $this->promiseCache->set($cacheKey, $promise);
         }
@@ -191,13 +198,12 @@ class DataLoader
         if ($this->needProcess()) {
             foreach ($this->queue as $data) {
                 try {
-                    /** @var Promise $promise */
-                    $promise = $data['promise'];
-                    $promise->cancel();
+                    $this->getPromiseFactory()->cancel($data['promise']);
                 } catch (\Exception $e) {
                     // no need to do nothing if cancel failed
                 }
             }
+            $this->await();
         }
         foreach (self::$instances as $i => $instance) {
             if ($this !== $instance) {
@@ -215,8 +221,14 @@ class DataLoader
     protected function process()
     {
         if ($this->needProcess()) {
+            $this->getPromiseFactory()->await();
             $this->dispatchQueue();
         }
+    }
+
+    protected function getPromiseFactory()
+    {
+        return $this->promiseFactory;
     }
 
     /**
@@ -227,48 +239,28 @@ class DataLoader
      */
     public static function await($promise = null, $unwrap = true)
     {
+        if (empty(self::$instances)) {
+            throw new \RuntimeException('Found no active DataLoader instance.');
+        }
         self::awaitInstances();
 
-        if (null === $promise) {
-            return null;
-        }
-        $resolvedValue = null;
-        $exception = null;
-
-        if (!is_callable([$promise, 'then'])) {
-            throw new \InvalidArgumentException(sprintf('The "%s" method must be called with a Promise ("then" method).', __METHOD__));
-        }
-
-        $promise->then(function ($values) use (&$resolvedValue) {
-            $resolvedValue = $values;
-        }, function ($reason) use (&$exception) {
-            $exception = $reason;
-        });
-        if ($exception instanceof \Exception) {
-            if (!$unwrap) {
-                return $exception;
-            }
-            throw $exception;
-        }
-
-        return $resolvedValue;
+        return self::$instances[0]->getPromiseFactory()->await($promise, $unwrap);
     }
 
     private static function awaitInstances()
     {
         $dataLoaders = self::$instances;
-        if (!empty($dataLoaders)) {
-            $wait = true;
 
-            while ($wait) {
-                foreach ($dataLoaders as $dataLoader) {
-                    if (!$dataLoader || !$dataLoader->needProcess()) {
-                        $wait = false;
-                        continue;
-                    }
-                    $wait = true;
-                    $dataLoader->process();
+        $wait = true;
+
+        while ($wait) {
+            foreach ($dataLoaders as $dataLoader) {
+                if (!$dataLoader || !$dataLoader->needProcess()) {
+                    $wait = false;
+                    continue;
                 }
+                $wait = true;
+                $dataLoader->process();
             }
         }
     }
@@ -322,7 +314,6 @@ class DataLoader
 
         // Call the provided batchLoadFn for this loader with the loader queue's keys.
         $batchLoadFn = $this->batchLoadFn;
-        /** @var Promise $batchPromise */
         $batchPromise = $batchLoadFn($keys);
 
         // Assert the expected response from batchLoadFn
@@ -374,7 +365,7 @@ class DataLoader
     /**
      * Do not cache individual loads if the entire batch dispatch fails,
      * but still reject each request so they do not hang.
-     * @param Promise[] $queue
+     * @param array      $queue
      * @param \Exception $error
      */
     private function failedDispatch($queue, \Exception $error)

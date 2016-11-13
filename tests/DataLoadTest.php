@@ -13,9 +13,8 @@ namespace Overblog\DataLoader\Tests;
 
 use Overblog\DataLoader\DataLoader;
 use Overblog\DataLoader\Option;
-use React\Promise\Promise;
 
-class DataLoadTest extends \PHPUnit_Framework_TestCase
+class DataLoadTest extends TestCase
 {
     /**
      * @group primary-api
@@ -65,7 +64,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         $promise1 = $identityLoader->load(1);
         $promise2 = $identityLoader->load(2);
 
-        list($value1, $value2) = DataLoader::await(\React\Promise\all([$promise1, $promise2]));
+        list($value1, $value2) = DataLoader::await(self::$promiseFactory->createAll([$promise1, $promise2]));
         $this->assertEquals(1, $value1);
         $this->assertEquals(2, $value2);
 
@@ -87,7 +86,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         $promise2 = $identityLoader->load(2);
         $promise3 = $identityLoader->load(3);
 
-        list($value1, $value2, $value3) = DataLoader::await(\React\Promise\all([$promise1, $promise2, $promise3]));
+        list($value1, $value2, $value3) = DataLoader::await(self::$promiseFactory->createAll([$promise1, $promise2, $promise3]));
         $this->assertEquals(1, $value1);
         $this->assertEquals(2, $value2);
         $this->assertEquals(3, $value3);
@@ -111,7 +110,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
 
         $this->assertTrue($promise1a === $promise1b);
 
-        list($value1a, $value1b) = DataLoader::await(\React\Promise\all([$promise1a, $promise1b]));
+        list($value1a, $value1b) = DataLoader::await(self::$promiseFactory->createAll([$promise1a, $promise1b]));
         $this->assertEquals(1, $value1a);
         $this->assertEquals(1, $value1b);
 
@@ -129,17 +128,17 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
          */
         list($identityLoader, $loadCalls) = self::idLoader();
 
-        list($a, $b) = DataLoader::await(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]));
+        list($a, $b) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load('A'), $identityLoader->load('B')]));
         $this->assertEquals('A', $a);
         $this->assertEquals('B', $b);
         $this->assertEquals([['A', 'B']], $loadCalls->getArrayCopy());
 
-        list($a2, $c) = DataLoader::await(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('C')]));
+        list($a2, $c) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load('A'), $identityLoader->load('C')]));
         $this->assertEquals('A', $a2);
         $this->assertEquals('C', $c);
         $this->assertEquals([['A', 'B'], ['C']], $loadCalls->getArrayCopy());
 
-        list($a3, $b2, $c2) = DataLoader::await(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B'), $identityLoader->load('C')]));
+        list($a3, $b2, $c2) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load('A'), $identityLoader->load('B'), $identityLoader->load('C')]));
         $this->assertEquals('A', $a3);
         $this->assertEquals('B', $b2);
         $this->assertEquals('C', $c2);
@@ -157,13 +156,13 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
          */
         list($identityLoader, $loadCalls) = self::idLoader();
 
-        list($a, $b) = DataLoader::await(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]));
+        list($a, $b) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load('A'), $identityLoader->load('B')]));
         $this->assertEquals('A', $a);
         $this->assertEquals('B', $b);
         $this->assertEquals([['A', 'B']], $loadCalls->getArrayCopy());
 
         $identityLoader->clear('A');
-        list($a2, $b2) = DataLoader::await(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]));
+        list($a2, $b2) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load('A'), $identityLoader->load('B')]));
         $this->assertEquals('A', $a2);
         $this->assertEquals('B', $b2);
         $this->assertEquals([['A', 'B'], ['A']], $loadCalls->getArrayCopy());
@@ -180,13 +179,13 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
          */
         list($identityLoader, $loadCalls) = self::idLoader();
 
-        list($a, $b) = DataLoader::await(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]));
+        list($a, $b) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load('A'), $identityLoader->load('B')]));
         $this->assertEquals('A', $a);
         $this->assertEquals('B', $b);
         $this->assertEquals([['A', 'B']], $loadCalls->getArrayCopy());
 
         $identityLoader->clearAll();
-        list($a2, $b2) = DataLoader::await(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]));
+        list($a2, $b2) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load('A'), $identityLoader->load('B')]));
         $this->assertEquals('A', $a2);
         $this->assertEquals('B', $b2);
         $this->assertEquals([['A', 'B'], ['A', 'B']], $loadCalls->getArrayCopy());
@@ -204,7 +203,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         list($identityLoader, $loadCalls) = self::idLoader();
 
         $identityLoader->prime('A', 'A');
-        list($a, $b) = DataLoader::await(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]));
+        list($a, $b) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load('A'), $identityLoader->load('B')]));
         $this->assertEquals('A', $a);
         $this->assertEquals('B', $b);
         $this->assertEquals([['B']], $loadCalls->getArrayCopy());
@@ -424,7 +423,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
          * @var \ArrayObject $loadCalls
          */
         list($failLoader, $loadCalls) = self::idLoader(null, function () {
-            return \React\Promise\reject(new \Exception('I am a terrible loader'));
+            return self::$promiseFactory->createReject(new \Exception('I am a terrible loader'));
         });
 
         $promise1 = $failLoader->load(1);
@@ -464,7 +463,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
 
         $keyA = new \stdClass();
         $keyB = new \stdClass();
-        list($valueA, $valueB) = DataLoader::await(\React\Promise\all([$identityLoader->load($keyA), $identityLoader->load($keyB)]));
+        list($valueA, $valueB) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load($keyA), $identityLoader->load($keyB)]));
         $this->assertEquals($keyA, $valueA);
         $this->assertEquals($keyB, $valueB);
 
@@ -477,7 +476,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         // Caching
         $identityLoader->clear($keyA);
 
-        list($valueA2, $valueB2) = DataLoader::await(\React\Promise\all([$identityLoader->load($keyA), $identityLoader->load($keyB)]));
+        list($valueA2, $valueB2) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load($keyA), $identityLoader->load($keyB)]));
         $this->assertEquals($keyA, $valueA2);
         $this->assertEquals($keyB, $valueB2);
 
@@ -503,7 +502,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         $promise1 = $identityLoader->load(1);
         $promise2 = $identityLoader->load(2);
 
-        list($value1, $value2) = DataLoader::await(\React\Promise\all([$promise1, $promise2]));
+        list($value1, $value2) = DataLoader::await(self::$promiseFactory->createAll([$promise1, $promise2]));
         $this->assertEquals(1, $value1);
         $this->assertEquals(2, $value2);
 
@@ -523,17 +522,17 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
          */
         list($identityLoader, $loadCalls) = self::idLoader(new Option(['cache' => false]));
 
-        list($a, $b) = DataLoader::await(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B')]));
+        list($a, $b) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load('A'), $identityLoader->load('B')]));
         $this->assertEquals('A', $a);
         $this->assertEquals('B', $b);
         $this->assertEquals([['A', 'B']], $loadCalls->getArrayCopy());
 
-        list($a2, $c) = DataLoader::await(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('C')]));
+        list($a2, $c) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load('A'), $identityLoader->load('C')]));
         $this->assertEquals('A', $a2);
         $this->assertEquals('C', $c);
         $this->assertEquals([['A', 'B'], ['A', 'C']], $loadCalls->getArrayCopy());
 
-        list($a3, $b2, $c2) = DataLoader::await(\React\Promise\all([$identityLoader->load('A'), $identityLoader->load('B'), $identityLoader->load('C')]));
+        list($a3, $b2, $c2) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load('A'), $identityLoader->load('B'), $identityLoader->load('C')]));
         $this->assertEquals('A', $a3);
         $this->assertEquals('B', $b2);
         $this->assertEquals('C', $c2);
@@ -651,13 +650,13 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
          */
         list($identityLoader, $loadCalls) = self::idLoader(new Option(['cacheMap' => $aCustomMap]));
 
-        list($valueA, $valueB1) = DataLoader::await(\React\Promise\all([$identityLoader->load('a'), $identityLoader->load('b')]));
+        list($valueA, $valueB1) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load('a'), $identityLoader->load('b')]));
         $this->assertEquals('a', $valueA);
         $this->assertEquals('b', $valueB1);
         $this->assertEquals([['a', 'b']], $loadCalls->getArrayCopy());
         $this->assertEquals(['a', 'b'], array_keys($aCustomMap->stash->getArrayCopy()));
 
-        list($valueC, $valueB2) = DataLoader::await(\React\Promise\all([$identityLoader->load('c'), $identityLoader->load('b')]));
+        list($valueC, $valueB2) = DataLoader::await(self::$promiseFactory->createAll([$identityLoader->load('c'), $identityLoader->load('b')]));
         $this->assertEquals('c', $valueC);
         $this->assertEquals('b', $valueB2);
         $this->assertEquals([['a', 'b'], ['c']], $loadCalls->getArrayCopy());
@@ -689,29 +688,29 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         list($identityLoader, $loadCalls) = self::idLoader();
 
         DataLoader::await(
-            \React\Promise\all([
+            self::$promiseFactory->createAll([
                 $identityLoader->load('A'),
-                \React\Promise\resolve()->then(
-                    function () use ($identityLoader) {
-                        \React\Promise\resolve()->then(function () use ($identityLoader) {
-                            $identityLoader->load('B');
-                            \React\Promise\resolve()->then(
-                                function () use ($identityLoader) {
-                                    \React\Promise\resolve()->then(function () use ($identityLoader) {
-                                        $identityLoader->load('C');
-                                        \React\Promise\resolve()->then(
-                                            function () use ($identityLoader) {
-                                                \React\Promise\resolve()->then(function () use ($identityLoader) {
-                                                    $identityLoader->load('D');
-                                                });
-                                            }
-                                        );
+                self::$promiseFactory->createResolve()
+                    ->then(function () {
+                        return self::$promiseFactory->createResolve();
+                    })
+                    ->then(function () use ($identityLoader) {
+                        $identityLoader->load('B');
+                        self::$promiseFactory->createResolve()
+                            ->then(function () use ($identityLoader) {
+                                return self::$promiseFactory->createResolve();
+                            })
+                            ->then(function () use ($identityLoader) {
+                                $identityLoader->load('C');
+                                self::$promiseFactory->createResolve()
+                                    ->then(function () {
+                                        return self::$promiseFactory->createResolve();
+                                    })
+                                    ->then(function () use ($identityLoader) {
+                                        $identityLoader->load('D');
                                     });
-                                }
-                            );
-                        });
-                    }
-                )
+                            });
+                    })
             ])
         );
 
@@ -747,7 +746,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
             return $deepLoader->load($keys);
         });
 
-        list($a1, $b1, $a2, $b2) = DataLoader::await(\React\Promise\all([
+        list($a1, $b1, $a2, $b2) = DataLoader::await(self::$promiseFactory->createAll([
             $aLoader->load('A1'),
             $bLoader->load('B1'),
             $aLoader->load('A2'),
@@ -802,7 +801,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
     private static function errorLoader()
     {
         return self::idLoader(null, function ($keys) {
-            return \React\Promise\resolve(
+            return self::$promiseFactory->createResolve(
                 array_map(function ($key) {
                     return new \Exception("Error: $key");
                 }, $keys)
@@ -814,7 +813,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
     {
         return self::idLoader(null, function ($keys) {
             $loadCalls[] = $keys;
-            return \React\Promise\resolve(
+            return self::$promiseFactory->createResolve(
                 array_map(function ($key) {
                     return $key % 2 === 0 ? $key : new \Exception("Odd: $key");
                 }, $keys)
@@ -827,7 +826,7 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
         $loadCalls = new \ArrayObject();
         if (null === $batchLoadFnCallBack) {
             $batchLoadFnCallBack = function ($keys) {
-                return \React\Promise\resolve($keys);
+                return self::$promiseFactory->createResolve($keys);
             };
         }
 
@@ -835,13 +834,13 @@ class DataLoadTest extends \PHPUnit_Framework_TestCase
             $loadCalls[] = $keys;
 
             return $batchLoadFnCallBack($keys);
-        }, $options);
+        }, self::$promiseFactory, $options);
 
         return [$identityLoader, $loadCalls];
     }
 
     private function assertInstanceOfPromise($object)
     {
-        $this->assertInstanceOf(Promise::class, $object);
+        $this->assertTrue(self::$promiseFactory->isPromise($object, true));
     }
 }
