@@ -11,7 +11,7 @@ data sources such as databases or web services via batching and caching.
 
 ## Requirements
 
-This library require [React/Promise](https://github.com/reactphp/promise) and PHP >= 5.5 to works.
+This library require PHP >= 5.5 to works.
 
 ## Getting Started
 
@@ -31,8 +31,9 @@ Create loaders by providing a batch loading instance.
 use Overblog\DataLoader\DataLoader;
 
 $myBatchGetUsers = function ($keys) { /* ... */ };
+$promiseFactory = new MyPromiseFactory();
 
-$userLoader = new DataLoader($myBatchGetUsers);
+$userLoader = new DataLoader($myBatchGetUsers, $promiseFactory);
 ```
 
 A batch loading callable / callback accepts an Array of keys, and returns a Promise which
@@ -122,11 +123,12 @@ Each `DataLoaderPHP` instance contains a unique memoized cache. Use caution when
 used in long-lived applications or those which serve many users with different
 access permissions and consider creating a new instance per web request.
 
-##### `new DataLoader(callable $batchLoadFn [, Option $options])`
+##### `new DataLoader(callable $batchLoadFn, PromiseFactoryInterface $promiseFactory [, Option $options])`
 
 Create a new `DataLoaderPHP` given a batch loading instance and options.
 
 - *$batchLoadFn*: A callable / callback which accepts an Array of keys, and returns a Promise which resolves to an Array of values.
+- *$promiseFactory*: Any object that implements `McGWeb\PromiseFactory\PromiseFactoryInterface`. (see [McGWeb/Promise-Factory](https://github.com/mcg-web/promise-factory))
 - *$options*: An optional object of options:
 
   - *batch*: Default `true`. Set to `false` to disable batching, instead
