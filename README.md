@@ -11,7 +11,7 @@ data sources such as databases or web services via batching and caching.
 
 ## Requirements
 
-This library require PHP >= 5.5 to works.
+This library requires PHP >= 5.5 to work.
 
 ## Getting Started
 
