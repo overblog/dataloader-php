@@ -786,6 +786,29 @@ class DataLoadTest extends TestCase
         DataLoader::await();
     }
 
+    public function testAwaitAlsoAwaitsNewlyCreatedDataloaders()
+    {
+        $firstComplete = false;
+        $secondComplete = false;
+
+        $first = new DataLoader(function ($values) use (&$firstComplete, &$secondComplete) {
+            $second = new DataLoader(function ($values) use (&$secondComplete) {
+                $secondComplete = true;
+                return self::$promiseFactory->createAll(['B']);
+            }, self::$promiseFactory);
+
+            $second->load('B');
+
+            $firstComplete = true;
+            return self::$promiseFactory->createAll(['A']);
+        }, self::$promiseFactory);
+
+        DataLoader::await($first->load('A'));
+
+        $this->assertTrue($firstComplete);
+        $this->assertTrue($secondComplete);
+    }
+
     public function cacheKey($key)
     {
         $cacheKey = [];
