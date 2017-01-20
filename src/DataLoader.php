@@ -263,6 +263,11 @@ class DataLoader
                 $dataLoader->process();
             }
         }
+
+        // If new dataloaders were instanciated in the meantime, wait again !
+        if (count($dataLoaders) != count(self::$instances)) {
+            self::awaitInstances();
+        }
     }
 
     private function getCacheKeyFromKey($key)
