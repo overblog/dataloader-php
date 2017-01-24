@@ -270,7 +270,12 @@ class DataLoader
         }
     }
 
-    private function getCacheKeyFromKey($key)
+    /**
+     * @param $key
+     *
+     * @return mixed
+     */
+    protected function getCacheKeyFromKey($key)
     {
         $cacheKeyFn = $this->options->getCacheKeyFn();
         $cacheKey = $cacheKeyFn ? $cacheKeyFn($key) : $key;
@@ -278,7 +283,11 @@ class DataLoader
         return $cacheKey;
     }
 
-    private function checkKey($key, $method)
+    /**
+     * @param $key
+     * @param $method
+     */
+    protected function checkKey($key, $method)
     {
         if (null === $key) {
             throw new \InvalidArgumentException(
