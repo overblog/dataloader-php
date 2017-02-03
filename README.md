@@ -31,9 +31,9 @@ Create loaders by providing a batch loading instance.
 use Overblog\DataLoader\DataLoader;
 
 $myBatchGetUsers = function ($keys) { /* ... */ };
-$promiseFactory = new MyPromiseFactory();
+$promiseAdapter = new MyPromiseAdapter();
 
-$userLoader = new DataLoader($myBatchGetUsers, $promiseFactory);
+$userLoader = new DataLoader($myBatchGetUsers, $promiseAdapter);
 ```
 
 A batch loading callable / callback accepts an Array of keys, and returns a Promise which
@@ -123,12 +123,12 @@ Each `DataLoaderPHP` instance contains a unique memoized cache. Use caution when
 used in long-lived applications or those which serve many users with different
 access permissions and consider creating a new instance per web request.
 
-##### `new DataLoader(callable $batchLoadFn, PromiseFactoryInterface $promiseFactory [, Option $options])`
+##### `new DataLoader(callable $batchLoadFn, PromiseAdapterInterface $promiseAdapter [, Option $options])`
 
 Create a new `DataLoaderPHP` given a batch loading instance and options.
 
 - *$batchLoadFn*: A callable / callback which accepts an Array of keys, and returns a Promise which resolves to an Array of values.
-- *$promiseFactory*: Any object that implements `McGWeb\PromiseFactory\PromiseFactoryInterface`. (see [McGWeb/Promise-Factory](https://github.com/mcg-web/promise-factory))
+- *$promiseAdapter*: Any object that implements `Overblog\PromiseAdapter\PromiseAdapterInterface`. (see [Overblog/Promise-Adapter](./lib/promise-adapter/docs/usage.md))
 - *$options*: An optional object of options:
 
   - *batch*: Default `true`. Set to `false` to disable batching, instead
@@ -163,7 +163,7 @@ list($a, $b) = DataLoader::await($myLoader->loadMany(['a', 'b']));
 
 This is equivalent to the more verbose:
 
-```js
+```php
 list($a, $b) = DataLoader::await(\React\Promise\all([
   $myLoader->load('a'),
   $myLoader->load('b')
@@ -202,10 +202,8 @@ Await method process all waiting promise in all dataLoaderPHP instances.
 - *$unwrap*: controls whether or not the value of the promise is returned for a fulfilled promise
   or if an exception is thrown if the promise is rejected. Default `true`.
 
-## Using with Webonyx/GraphQL [WIP]
+## Using with Webonyx/GraphQL
 
-A [PR](https://github.com/webonyx/graphql-php/pull/67) is open on [Webonyx/GraphQL](https://github.com/webonyx/graphql-php)
-to supports DataLoaderPHP and more generally promise.
 Here [an example](https://github.com/mcg-web/sandbox-dataloader-graphql-php/blob/master/with-dataloader.php).
 
 ## Credits

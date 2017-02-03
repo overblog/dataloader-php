@@ -9,21 +9,21 @@
  * file that was distributed with this source code.
  */
 
-namespace Overblog\DataLoader\Tests;
+namespace Overblog\DataLoader\Test;
 
-use McGWeb\PromiseFactory\Factory\GuzzleHttpPromiseFactory;
-use McGWeb\PromiseFactory\PromiseFactoryInterface;
+use Overblog\PromiseAdapter\Adapter\GuzzleHttpPromiseAdapter;
+use Overblog\PromiseAdapter\Adapter\ReactPromiseAdapter;
+use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
 class TestCase extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var PromiseFactoryInterface
+     * @var PromiseAdapterInterface
      */
-    protected static $promiseFactory;
+    protected static $promiseAdapter;
 
     public function setUp()
     {
-        self::$promiseFactory = new GuzzleHttpPromiseFactory();
+        self::$promiseAdapter = new ReactPromiseAdapter();
     }
-
 }

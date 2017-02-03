@@ -22,9 +22,7 @@ before_install:
 
 install: composer update --prefer-dist --no-interaction
 
-script:
-  - if [ "$TRAVIS_PHP_VERSION" == "5.6" ]; then bin/phpunit --debug --coverage-clover build/logs/clover.xml; else bin/phpunit --debug; fi
-  - if [ "$TRAVIS_PHP_VERSION" == "7.0" ]; then composer require "friendsofphp/php-cs-fixer:^2.0" && bin/php-cs-fixer fix --diff --dry-run -v; fi;
+script: if [ "$TRAVIS_PHP_VERSION" == "5.6" ]; then bin/phpunit --debug --coverage-clover build/logs/clover.xml; else bin/phpunit --debug; fi
 
 after_success:
   - if [ "$TRAVIS_PHP_VERSION" == "5.6" ]; then composer require "satooshi/php-coveralls:^1.0" && travis_retry php vendor/bin/coveralls -v; fi

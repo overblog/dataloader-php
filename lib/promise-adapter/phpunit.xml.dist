@@ -12,20 +12,17 @@
     </php>
 
     <testsuites>
-        <testsuite name="DataLoad Php Test Suite">
+        <testsuite name="Promise Adapter Test Suite">
             <directory>./tests</directory>
-           <directory>./lib/promise-adapter/tests</directory>
         </testsuite>
     </testsuites>
 
     <filter>
         <whitelist>
             <directory>./src</directory>
-            <directory>./lib/promise-adapter/src</directory>
             <exclude>
                 <directory>./vendor</directory>
                 <directory>./tests</directory>
-                <directory>./lib/promise-adapter/tests</directory>
             </exclude>
         </whitelist>
     </filter>
