@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace Overblog\DataLoader\Tests;
+namespace Overblog\DataLoader\Test;
 
 use Overblog\DataLoader\DataLoader;
 
@@ -75,7 +75,7 @@ class AbuseTest extends TestCase
     public function testBatchFunctionMustReturnAPromiseOfAnArrayNotNull()
     {
         DataLoader::await(self::idLoader(function () {
-            return self::$promiseFactory->createResolve(null);
+            return self::$promiseAdapter->createFulfilled(null);
         })->load(1));
     }
 
@@ -87,7 +87,7 @@ class AbuseTest extends TestCase
     public function testBatchFunctionMustPromiseAnArrayOfCorrectLength()
     {
         DataLoader::await(self::idLoader(function () {
-            return self::$promiseFactory->createResolve([]);
+            return self::$promiseAdapter->createFulfilled([]);
         })->load(1));
     }
 
@@ -122,10 +122,10 @@ class AbuseTest extends TestCase
     {
         if (null === $batchLoadFn) {
             $batchLoadFn = function ($keys) {
-                return self::$promiseFactory->createAll($keys);
+                return self::$promiseAdapter->createAll($keys);
             };
         }
 
-        return new DataLoader($batchLoadFn, self::$promiseFactory);
+        return new DataLoader($batchLoadFn, self::$promiseAdapter);
     }
 }

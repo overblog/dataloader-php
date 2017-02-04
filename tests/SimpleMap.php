@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace Overblog\DataLoader\Tests;
+namespace Overblog\DataLoader\Test;
 
 use Overblog\DataLoader\CacheMap;
 

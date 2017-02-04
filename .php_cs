@@ -9,9 +9,6 @@
  * file that was distributed with this source code.
  */
 
-require_once __DIR__.'/vendor/autoload.php';
-
-use SLLH\StyleCIBridge\ConfigBridge;
 use Symfony\CS\Fixer\Contrib\HeaderCommentFixer;
 
 $header = <<<EOF
@@ -23,21 +20,18 @@ For the full copyright and license information, please view the LICENSE
 file that was distributed with this source code.
 EOF;
 
-// PHP-CS-Fixer 1.x
-if (method_exists('Symfony\CS\Fixer\Contrib\HeaderCommentFixer', 'getHeader')) {
-    HeaderCommentFixer::setHeader($header);
-}
-
-$config = ConfigBridge::create();
-
-// PHP-CS-Fixer 2.x
-if (method_exists($config, 'setRules')) {
-    $config->setRules(array_merge($config->getRules(), [
-        'header_comment' => ['header' => $header]
-    ]));
-}
-
-return $config
-    ->setUsingCache(true)
-    ->fixers(array_merge($config->getFixers(), ['header_comment']))
-;
+return PhpCsFixer\Config::create()
+    ->setRules([
+      '@PSR2' => true,
+      'array_syntax' => ['syntax' => 'short'],
+      'no_unreachable_default_argument_value' => false,
+      'heredoc_to_nowdoc' => false,
+      'header_comment' => ['header' => $header],
+    ])
+    ->setRiskyAllowed(true)
+    ->setFinder(
+        PhpCsFixer\Finder::create()
+            ->in(__DIR__)
+            ->exclude(['vendor'])
+    )
+  ;

@@ -11,7 +11,7 @@
 
 namespace Overblog\DataLoader;
 
-use McGWeb\PromiseFactory\PromiseFactoryInterface;
+use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
 class DataLoader
 {
@@ -41,14 +41,14 @@ class DataLoader
     private static $instances = [];
 
     /**
-     * @var PromiseFactoryInterface
+     * @var PromiseAdapterInterface
      */
-    private $promiseFactory;
+    private $promiseAdapter;
 
-    public function __construct(callable $batchLoadFn, PromiseFactoryInterface $promiseFactory,  Option $options = null)
+    public function __construct(callable $batchLoadFn, PromiseAdapterInterface $promiseFactory, Option $options = null)
     {
         $this->batchLoadFn = $batchLoadFn;
-        $this->promiseFactory = $promiseFactory;
+        $this->promiseAdapter = $promiseFactory;
         $this->options = $options ?: new Option();
         $this->promiseCache = $this->options->getCacheMap();
         self::$instances[] = $this;
@@ -78,7 +78,7 @@ class DataLoader
         }
 
         // Otherwise, produce a new Promise for this value.
-        $promise = $this->getPromiseFactory()->create(
+        $promise = $this->getPromiseAdapter()->create(
             $resolve,
             $reject,
             function () {
@@ -132,7 +132,7 @@ class DataLoader
         if (!is_array($keys) && !$keys instanceof \Traversable) {
             throw new \InvalidArgumentException(sprintf('The "%s" method must be called with Array<key> but got: %s.', __METHOD__, gettype($keys)));
         }
-        return $this->getPromiseFactory()->createAll(array_map(
+        return $this->getPromiseAdapter()->createAll(array_map(
             function ($key) {
                 return $this->load($key);
             },
@@ -185,7 +185,7 @@ class DataLoader
         if (!$this->promiseCache->has($cacheKey)) {
             // Cache a rejected promise if the value is an Error, in order to match
             // the behavior of load(key).
-            $promise = $value instanceof \Exception ? $this->getPromiseFactory()->createReject($value) : $this->getPromiseFactory()->createResolve($value);
+            $promise = $value instanceof \Exception ? $this->getPromiseAdapter()->createRejected($value) : $this->getPromiseAdapter()->createFulfilled($value);
 
             $this->promiseCache->set($cacheKey, $promise);
         }
@@ -198,7 +198,7 @@ class DataLoader
         if ($this->needProcess()) {
             foreach ($this->queue as $data) {
                 try {
-                    $this->getPromiseFactory()->cancel($data['promise']);
+                    $this->getPromiseAdapter()->cancel($data['promise']);
                 } catch (\Exception $e) {
                     // no need to do nothing if cancel failed
                 }
@@ -221,14 +221,14 @@ class DataLoader
     protected function process()
     {
         if ($this->needProcess()) {
-            $this->getPromiseFactory()->await();
+            $this->getPromiseAdapter()->await();
             $this->dispatchQueue();
         }
     }
 
-    protected function getPromiseFactory()
+    protected function getPromiseAdapter()
     {
-        return $this->promiseFactory;
+        return $this->promiseAdapter;
     }
 
     /**
@@ -244,7 +244,7 @@ class DataLoader
         }
         self::awaitInstances();
 
-        return self::$instances[0]->getPromiseFactory()->await($promise, $unwrap);
+        return self::$instances[0]->getPromiseAdapter()->await($promise, $unwrap);
     }
 
     private static function awaitInstances()
@@ -371,7 +371,7 @@ class DataLoader
                     }
                 };
             }
-        )->otherwise(function ($error) use ($queue) {
+        )->then(null, function ($error) use ($queue) {
             $this->failedDispatch($queue, $error);
         });
     }
