@@ -14,6 +14,7 @@ namespace Overblog\PromiseAdapter\Tests;
 
 use Overblog\PromiseAdapter\Adapter\GuzzleHttpPromiseAdapter;
 use Overblog\PromiseAdapter\Adapter\ReactPromiseAdapter;
+use Overblog\PromiseAdapter\Adapter\WebonyxGraphQLSyncPromiseAdapter;
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
 class AdapterTest extends \PHPUnit_Framework_TestCase
@@ -210,8 +211,9 @@ class AdapterTest extends \PHPUnit_Framework_TestCase
     public function AdapterDataProvider()
     {
         return [
-            [new GuzzleHttpPromiseAdapter(), 'guzzle', '\\GuzzleHttp\\Promise\\PromiseInterface'],
-            [new ReactPromiseAdapter(), 'react', '\\React\\Promise\\PromiseInterface'],
+            [new GuzzleHttpPromiseAdapter(), 'guzzle', 'GuzzleHttp\\Promise\\PromiseInterface'],
+            [new ReactPromiseAdapter(), 'react', 'React\\Promise\\PromiseInterface'],
+            [new WebonyxGraphQLSyncPromiseAdapter(), 'webonyx', 'GraphQL\\Executor\\Promise\\Promise'],
         ];
     }
 }

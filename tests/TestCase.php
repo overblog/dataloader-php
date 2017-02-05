@@ -11,11 +11,10 @@
 
 namespace Overblog\DataLoader\Test;
 
-use Overblog\PromiseAdapter\Adapter\GuzzleHttpPromiseAdapter;
 use Overblog\PromiseAdapter\Adapter\ReactPromiseAdapter;
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
-class TestCase extends \PHPUnit_Framework_TestCase
+abstract class TestCase extends \PHPUnit_Framework_TestCase
 {
     /**
      * @var PromiseAdapterInterface

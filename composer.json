@@ -18,7 +18,10 @@
     "psr-4": {
       "Overblog\\DataLoader\\Test\\": "tests/",
       "Overblog\\PromiseAdapter\\Test\\": "lib/promise-adapter/tests/"
-    }
+    },
+    "files": [
+      "vendor/webonyx/graphql-php/tests/StarWarsData.php"
+    ]
   },
   "replace": {
     "overblog/promise-adapter": "self.version"
@@ -29,11 +32,13 @@
   "require-dev": {
     "guzzlehttp/promises": "^1.3.0",
     "phpunit/phpunit": "^4.1|^5.1",
-    "react/promise": "^2.5.0"
+    "react/promise": "^2.5.0",
+    "webonyx/graphql-php": "^0.9.0"
   },
   "suggest": {
     "guzzlehttp/promises": "To use with Guzzle promise",
-    "react/promise": "To use with ReactPhp promise"
+    "react/promise": "To use with ReactPhp promise",
+    "webonyx/graphql-php": "To use with Webonyx GraphQL native promise"
   },
   "extra": {
     "branch-alias": {

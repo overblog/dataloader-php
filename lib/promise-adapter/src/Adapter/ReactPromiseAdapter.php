@@ -102,9 +102,6 @@ class ReactPromiseAdapter implements PromiseAdapterInterface
             $wait = false;
         });
 
-        while ($wait) {
-        }
-
         if ($exception instanceof \Exception) {
             if (!$unwrap) {
                 return $exception;

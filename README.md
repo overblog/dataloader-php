@@ -23,8 +23,10 @@ composer require "overblog/dataloader-php"
 
 To get started, create a `DataLoader` object.
 
-Batching is not an advanced feature, it's DataLoaderPHP's primary feature.
-Create loaders by providing a batch loading instance.
+## Batching
+
+Batching is not an advanced feature, it's DataLoader's primary feature.
+Create loaders by providing a batch loading function.
 
 
 ```php
@@ -67,49 +69,148 @@ presented to your batch loading function. This allows your application to safely
 distribute data fetching requirements throughout your application and maintain
 minimal outgoing data requests.
 
-### Caching (current PHP instance)
+#### Batch Function
 
-After being loaded once, the resulting value is cached, eliminating
-redundant requests.
+A batch loading function accepts an Array of keys, and returns a Promise which
+resolves to an Array of values. There are a few constraints that must be upheld:
 
-In the example above, if User `1` was last invited by User `2`, only a single
-round trip will occur.
+ * The Array of values must be the same length as the Array of keys.
+ * Each index in the Array of values must correspond to the same index in the Array of keys.
 
-Caching results in creating fewer objects which may relieve memory pressure on
-your application:
+For example, if your batch function was provided the Array of keys: `[ 2, 9, 6, 1 ]`,
+and loading from a back-end service returned the values:
 
 ```php
+[
+  ['id' => 9, 'name' => 'Chicago'],
+  ['id' => 1, 'name' => 'New York'],
+  ['id' => 2, 'name' => 'San Francisco']  
+]
+```
+
+Our back-end service returned results in a different order than we requested, likely
+because it was more efficient for it to do so. Also, it omitted a result for key `6`,
+which we can interpret as no value existing for that key.
+
+To uphold the constraints of the batch function, it must return an Array of values
+the same length as the Array of keys, and re-order them to ensure each index aligns
+with the original keys `[ 2, 9, 6, 1 ]`:
+
+```php
+[
+  ['id' => 2, 'name' => 'San Francisco'],
+  ['id' => 9, 'name' => 'Chicago'],
+  null,
+  ['id' => 1, 'name' => 'New York']
+]
+```
+
+
+### Caching (current PHP instance)
+
+DataLoader provides a memoization cache for all loads which occur in a single
+request to your application. After `->load()` is called once with a given key,
+the resulting value is cached to eliminate redundant loads.
+
+In addition to reliving pressure on your data storage, caching results per-request
+also creates fewer objects which may relieve memory pressure on your application:
+
+```php
+$userLoader =  new DataLoader(...);
 $promise1A = $userLoader->load(1);
 $promise1B = $userLoader->load(1);
 var_dump($promise1A === $promise1B); // bool(true)
 ```
 
-There are two common examples when clearing the loader's cache is necessary:
+#### Clearing Cache
 
-*Mutations:* after a mutation or update, a cached value may be out of date.
-Future loads should not use any possibly cached value.
+In certain uncommon cases, clearing the request cache may be necessary.
+
+The most common example when clearing the loader's cache is necessary is after
+a mutation or update within the same request, when a cached value could be out of
+date and future loads should not use any possibly cached value.
 
 Here's a simple example using SQL UPDATE to illustrate.
 
 ```php
+use Overblog\DataLoader\DataLoader;
+
+// Request begins...
+$userLoader = new DataLoader(...);
+
+// And a value happens to be loaded (and cached).
+$userLoader->load(4)->then(...);
+
+// A mutation occurs, invalidating what might be in cache.
 $sql = 'UPDATE users WHERE id=4 SET username="zuck"';
 if (true === $conn->query($sql)) {
   $userLoader->clear(4);
 }
+
+// Later the value load is loaded again so the mutated data appears.
+$userLoader->load(4)->then(...);
+
+// Request completes.
 ```
 
-*Transient Errors:* A load may fail because it simply can't be loaded
-(a permanent issue) or it may fail because of a transient issue such as a down
-database or network issue. For transient errors, clear the cache:
+#### Caching Errors
+
+If a batch load fails (that is, a batch function throws or returns a rejected
+Promise), then the requested values will not be cached. However if a batch
+function returns an `Error` instance for an individual value, that `Error` will
+be cached to avoid frequently loading the same `Error`.
+
+In some circumstances you may wish to clear the cache for these individual Errors:
 
 ```php
-$userLoader->load(1)->otherwise(function ($exception) {
+$userLoader->load(1)->then(null, function ($exception) {
   if (/* determine if error is transient */) {
     $userLoader->clear(1);
   }
   throw $exception;
 });
 ```
+
+#### Disabling Cache
+
+In certain uncommon cases, a DataLoader which *does not* cache may be desirable.
+Calling `new DataLoader(myBatchFn, new Option(['cache' => false ]))` will ensure that every
+call to `->load()` will produce a *new* Promise, and requested keys will not be
+saved in memory.
+
+However, when the memoization cache is disabled, your batch function will
+receive an array of keys which may contain duplicates! Each key will be
+associated with each call to `->load()`. Your batch loader should provide a value
+for each instance of the requested key.
+
+For example:
+
+```php
+$myLoader = new DataLoader(function ($keys) {
+  echo json_encode($keys);
+  return someBatchLoadFn($keys);
+}, new Option(['cache' => false ]));
+
+$myLoader->load('A');
+$myLoader->load('B');
+$myLoader->load('A');
+
+// [ 'A', 'B', 'A' ]
+```
+
+More complex cache behavior can be achieved by calling `->clear()` or `->clearAll()`
+rather than disabling the cache completely. For example, this DataLoader will
+provide unique keys to a batch function due to the memoization cache being
+enabled, but will immediately clear its cache when the batch function is called
+so later requests will load new values.
+
+```php
+$myLoader = new DataLoader(function($keys) use ($identityLoader) {
+  $identityLoader->clearAll();
+  return someBatchLoadFn($keys);
+});
+```
+
 
 ## API
 
@@ -204,7 +305,82 @@ Await method process all waiting promise in all dataLoaderPHP instances.
 
 ## Using with Webonyx/GraphQL
 
-Here [an example](https://github.com/mcg-web/sandbox-dataloader-graphql-php/blob/master/with-dataloader.php).
+DataLoader pairs nicely well with [Webonyx/GraphQL](https://github.com/webonyx/graphql-php). GraphQL fields are
+designed to be stand-alone functions. Without a caching or batching mechanism,
+it's easy for a naive GraphQL server to issue new database requests each time a
+field is resolved.
+
+Consider the following GraphQL request:
+
+```graphql
+{
+  me {
+    name
+    bestFriend {
+      name
+    }
+    friends(first: 5) {
+      name
+      bestFriend {
+        name
+      }
+    }
+  }
+}
+```
+
+Naively, if `me`, `bestFriend` and `friends` each need to request the backend,
+there could be at most 13 database requests!
+
+When using DataLoader, we could define the `User` type
+at most 4 database requests,
+and possibly fewer if there are cache hits.
+
+```php
+<?php
+use GraphQL\Type\Definition\ObjectType;
+use GraphQL\Type\Definition\Type;
+
+/**
+* @var \Overblog\DataLoader\DataLoader $userLoader
+* @var \PDO $dbh
+*/
+// ...
+
+$userType = new ObjectType([
+  'name' => 'User',
+  'fields' => function () use (&$userType, $userLoader, $dbh) {
+     return [
+            'name' => ['type' => Type::string()],
+            'bestFriend' => [
+                'type' => $userType,
+                'resolve' => function ($user) use ($userLoader) {
+                    $userLoader->load($user['bestFriendID']);
+                }
+            ],
+            'friends' => [
+                'args' => [
+                    'first' => ['type' => Type::int() ],
+                ],
+                'type' => Type::listOf($userType),
+                'resolve' => function ($user, $args) use ($userLoader, $dbh) {
+                    $sth = $dbh->prepare('SELECT toID FROM friends WHERE fromID=:userID LIMIT :first');
+                    $sth->bindParam(':userID', $user['id'], PDO::PARAM_INT);
+                    $sth->bindParam(':first', $args['first'], PDO::PARAM_INT);
+                    $friendIDs = $sth->execute();
+
+                    return $userLoader->loadMany($friendIDs);
+                }
+            ]
+        ];
+    }
+]);
+```
+You can also see [an example](https://github.com/mcg-web/sandbox-dataloader-graphql-php/blob/master/with-dataloader.php).
+
+## Using with Symfony
+
+See the [bundle](https://github.com/overblog/dataloader-bundle).
 
 ## Credits
 
