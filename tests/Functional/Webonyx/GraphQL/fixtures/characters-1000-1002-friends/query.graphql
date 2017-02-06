@@ -1,0 +1,18 @@
+{
+  character1: character(id: "1000") {
+    id
+    name
+    friends {
+      id
+      name
+    }
+  }
+  character2: character(id: "1002") {
+    id
+    name
+    friends {
+      id
+      name
+    }
+  }
+}

@@ -384,7 +384,7 @@ class DataLoadTest extends TestCase
         try {
             DataLoader::await(
                 $errorLoader->load(1)
-                    ->otherwise(function ($error) use (&$errorLoader) {
+                    ->then(null, function ($error) use (&$errorLoader) {
                         $errorLoader->clear(1);
                         throw $error;
                     })
@@ -399,7 +399,7 @@ class DataLoadTest extends TestCase
         try {
             DataLoader::await(
                 $errorLoader->load(1)
-                    ->otherwise(function ($error) use (&$errorLoader) {
+                    ->then(null, function ($error) use (&$errorLoader) {
                         $errorLoader->clear(1);
                         throw $error;
                     })

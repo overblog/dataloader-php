@@ -1,0 +1,12 @@
+{
+  "data": {
+    "character1": {
+      "id": "1000",
+      "name": "Luke Skywalker"
+    },
+    "character2": {
+      "id": "1002",
+      "name": "Han Solo"
+    }
+  }
+}
