@@ -189,7 +189,7 @@ For example:
 $myLoader = new DataLoader(function ($keys) {
   echo json_encode($keys);
   return someBatchLoadFn($keys);
-}, new Option(['cache' => false ]));
+}, $promiseAdapter, new Option(['cache' => false ]));
 
 $myLoader->load('A');
 $myLoader->load('B');
@@ -208,7 +208,7 @@ so later requests will load new values.
 $myLoader = new DataLoader(function($keys) use ($identityLoader) {
   $identityLoader->clearAll();
   return someBatchLoadFn($keys);
-});
+}, $promiseAdapter);
 ```
 
 
@@ -338,14 +338,23 @@ and possibly fewer if there are cache hits.
 
 ```php
 <?php
+use GraphQL\GraphQL;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
+use Overblog\DataLoader\DataLoader;
+use Overblog\DataLoader\Promise\Adapter\Webonyx\GraphQL\SyncPromiseAdapter;
+use Overblog\PromiseAdapter\Adapter\WebonyxGraphQLSyncPromiseAdapter;
 
 /**
-* @var \Overblog\DataLoader\DataLoader $userLoader
 * @var \PDO $dbh
 */
 // ...
+
+$graphQLPromiseAdapter = new SyncPromiseAdapter();
+$dataLoaderPromiseAdapter = new WebonyxGraphQLSyncPromiseAdapter($graphQLPromiseAdapter);
+$userLoader = new DataLoader(function ($keys) { /*...*/ }, $dataLoaderPromiseAdapter);
+
+GraphQL::setPromiseAdapter($graphQLPromiseAdapter);
 
 $userType = new ObjectType([
   'name' => 'User',
@@ -376,7 +385,7 @@ $userType = new ObjectType([
     }
 ]);
 ```
-You can also see [an example](https://github.com/mcg-web/sandbox-dataloader-graphql-php/blob/master/with-dataloader.php).
+You can also see [an example](https://github.com/mcg-web/sandbox-dataloader-graphql-php).
 
 ## Using with Symfony
 
