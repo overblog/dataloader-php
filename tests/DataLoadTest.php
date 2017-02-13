@@ -809,6 +809,38 @@ class DataLoadTest extends TestCase
         $this->assertTrue($secondComplete);
     }
 
+    /**
+     * @runInSeparateProcess
+     */
+    public function testAwaitShouldReturnTheValueOfFulfilledPromiseWithoutNeedingActiveDataLoaderInstance()
+    {
+        $expectedValue = 'Ok!';
+        $value = DataLoader::await(self::$promiseAdapter->createFulfilled($expectedValue));
+
+        $this->assertEquals($expectedValue, $value);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testAwaitShouldReturnTheRejectReasonOfRejectedPromiseWithoutNeedingActiveDataLoaderInstance()
+    {
+        $expectedException = new \Exception('Rejected!');
+        $exception = DataLoader::await(self::$promiseAdapter->createRejected($expectedException), false);
+
+        $this->assertEquals($expectedException, $exception);
+    }
+
+    /**
+     * @expectedException \Exception
+     * @expectedExceptionMessage Rejected!
+     * @runInSeparateProcess
+     */
+    public function testAwaitShouldThrowTheRejectReasonOfRejectedPromiseWithoutNeedingActiveDataLoaderInstance()
+    {
+        DataLoader::await(self::$promiseAdapter->createRejected(new \Exception('Rejected!')));
+    }
+
     public function cacheKey($key)
     {
         $cacheKey = [];
