@@ -239,21 +239,55 @@ class DataLoader
      */
     public static function await($promise = null, $unwrap = true)
     {
+        self::awaitInstances();
+
+        if (null === $promise) {
+            return null;
+        }
+
+        if (is_callable([$promise, 'then'])) {
+            $isPromiseCompleted = false;
+            $resolvedValue = null;
+            $rejectedReason = null;
+
+            $promise->then(
+                function ($value) use (&$isPromiseCompleted, &$resolvedValue) {
+                    $isPromiseCompleted = true;
+                    $resolvedValue = $value;
+                },
+                function ($reason) use (&$isPromiseCompleted, &$rejectedReason) {
+                    $isPromiseCompleted = true;
+                    $rejectedReason = $reason;
+                }
+            );
+
+            //Promise is completed?
+            if ($isPromiseCompleted) {
+                // rejected ?
+                if ($rejectedReason instanceof \Exception) {
+                    if (!$unwrap) {
+                        return $rejectedReason;
+                    }
+                    throw $rejectedReason;
+                }
+
+                return $resolvedValue;
+            }
+        }
+
         if (empty(self::$instances)) {
             throw new \RuntimeException('Found no active DataLoader instance.');
         }
-        self::awaitInstances();
 
         return self::$instances[0]->getPromiseAdapter()->await($promise, $unwrap);
     }
 
     private static function awaitInstances()
     {
-        $dataLoaders = self::$instances;
+        do {
+            $wait = false;
+            $dataLoaders = self::$instances;
 
-        $wait = true;
-
-        while ($wait) {
             foreach ($dataLoaders as $dataLoader) {
                 if (!$dataLoader || !$dataLoader->needProcess()) {
                     $wait = false;
@@ -262,12 +296,7 @@ class DataLoader
                 $wait = true;
                 $dataLoader->process();
             }
-        }
-
-        // If new dataloaders were instanciated in the meantime, wait again !
-        if (count($dataLoaders) != count(self::$instances)) {
-            self::awaitInstances();
-        }
+        } while ($wait);
     }
 
     /**

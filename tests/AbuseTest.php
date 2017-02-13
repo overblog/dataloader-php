@@ -111,7 +111,7 @@ class AbuseTest extends TestCase
      */
     public function testAwaitWithoutNoInstance()
     {
-        DataLoader::await();
+        DataLoader::await(self::$promiseAdapter->create());
     }
 
     /**
