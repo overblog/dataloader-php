@@ -803,6 +803,11 @@ class DataLoadTest extends TestCase
             return self::$promiseAdapter->createAll(['A']);
         }, self::$promiseAdapter);
 
+        // This tests that an idling dataloader do not cause the others to be skipped.
+        $third = new DataLoader(function () {
+            // noop
+        }, self::$promiseAdapter);
+
         DataLoader::await($first->load('A'));
 
         $this->assertTrue($firstComplete);

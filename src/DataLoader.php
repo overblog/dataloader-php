@@ -290,7 +290,7 @@ class DataLoader
 
             foreach ($dataLoaders as $dataLoader) {
                 if (!$dataLoader || !$dataLoader->needProcess()) {
-                    $wait = false;
+                    $wait |= false;
                     continue;
                 }
                 $wait = true;
