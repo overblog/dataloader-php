@@ -391,7 +391,7 @@ You can also see [an example](https://github.com/mcg-web/sandbox-dataloader-grap
 
 See the [bundle](https://github.com/overblog/dataloader-bundle).
 
-## Credits
+## Credits
 
 Overblog/DataLoaderPHP is a port of [dataLoader NodeJS version](https://github.com/facebook/dataloader)
 by [Facebook](https://github.com/facebook).
@@ -399,6 +399,6 @@ by [Facebook](https://github.com/facebook).
 Also, large parts of the documentation have been ported from the dataLoader NodeJS version
 [Docs](https://github.com/facebook/dataloader/blob/master/README.md).
 
-## License
+## License
 
 Overblog/DataLoaderPHP is released under the [MIT](https://github.com/overblog/dataloader-php/blob/master/LICENSE) license.
