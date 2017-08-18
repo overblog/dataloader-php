@@ -11,27 +11,19 @@
 
 namespace Overblog\DataLoader\Promise\Adapter\Webonyx\GraphQL;
 
-use GraphQL\Deferred;
-use GraphQL\Executor\Promise\Adapter\SyncPromise;
 use GraphQL\Executor\Promise\Adapter\SyncPromiseAdapter as BaseSyncPromiseAdapter;
 use GraphQL\Executor\Promise\Promise;
 use Overblog\DataLoader\DataLoader;
 
 class SyncPromiseAdapter extends BaseSyncPromiseAdapter
 {
-    /**
-     * Synchronously wait when promise completes
-     *
-     * @param Promise $promise
-     * @return mixed
-     */
-    public function wait(Promise $promise)
+    protected function beforeWait(Promise $promise)
     {
         DataLoader::await();
-        Deferred::runQueue();
-        SyncPromise::runQueue();
-        DataLoader::await();
+    }
 
-        return parent::wait($promise);
+    protected function onWait(Promise $promise)
+    {
+        DataLoader::await();
     }
 }
