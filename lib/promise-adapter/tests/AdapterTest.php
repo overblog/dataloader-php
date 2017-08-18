@@ -9,7 +9,6 @@
  * file that was distributed with this source code.
  */
 
-
 namespace Overblog\PromiseAdapter\Tests;
 
 use Overblog\PromiseAdapter\Adapter\GuzzleHttpPromiseAdapter;
