@@ -47,12 +47,12 @@ and then call your batch function with all requested keys.
 
 ```php
 $userLoader->load(1)
-  ->then(function ($user) use ($userLoader) { $userLoader->load($user->invitedByID); })
+  ->then(function ($user) use ($userLoader) { return $userLoader->load($user->invitedByID); })
   ->then(function ($invitedBy) { echo "User 1 was invited by $invitedBy"; });
 
 // Elsewhere in your application
 $userLoader->load(2)
-  ->then(function ($user) use ($userLoader) { $userLoader->load($user->invitedByID); })
+  ->then(function ($user) use ($userLoader) { return $userLoader->load($user->invitedByID); })
   ->then(function ($invitedBy) { echo "User 2 was invited by $invitedBy"; });
 
 // Synchronously waits on the promise to complete, if not using EventLoop.
