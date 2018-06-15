@@ -111,6 +111,7 @@ class WebonyxGraphQLSyncPromiseAdapter implements PromiseAdapterInterface
         if (null === $promise) {
             Deferred::runQueue();
             SyncPromise::runQueue();
+            $this->cancellers = [];
             return null;
         }
         $promiseAdapter = $this->getWebonyxPromiseAdapter();
@@ -133,6 +134,8 @@ class WebonyxGraphQLSyncPromiseAdapter implements PromiseAdapterInterface
             throw $exception;
         }
 
+        $hash = spl_object_hash($promise);
+        unset($this->cancellers[$hash]);
         return $resolvedValue;
     }
 
@@ -146,6 +149,7 @@ class WebonyxGraphQLSyncPromiseAdapter implements PromiseAdapterInterface
             throw new \InvalidArgumentException(sprintf('The "%s" method must be called with a compatible Promise.', __METHOD__));
         }
         $canceller = $this->cancellers[$hash];
+        unset($this->cancellers[$hash]);
         $adoptedPromise = $promise;
         if ($promise instanceof Promise) {
             $adoptedPromise = $promise->adoptedPromise;
