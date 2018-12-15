@@ -13,7 +13,7 @@ namespace Overblog\DataLoader;
 
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
-class DataLoader
+class DataLoader implements DataLoaderInterface
 {
     /**
      * @var callable
@@ -55,11 +55,7 @@ class DataLoader
     }
 
     /**
-     * Loads a key, returning a `Promise` for the value represented by that key.
-     *
-     * @param string $key
-     *
-     * @return mixed return a Promise
+     * {@inheritdoc}
      */
     public function load($key)
     {
@@ -113,19 +109,7 @@ class DataLoader
     }
 
     /**
-     * Loads multiple keys, promising an array of values:
-     *
-     *     list($a, $b) = $myLoader->loadMany(['a', 'b']);
-     *
-     * This is equivalent to the more verbose:
-     *
-     *     list($a, $b) = \React\Promise\all([
-     *       $myLoader->load('a'),
-     *       $myLoader->load('b')
-     *     ]);
-     * @param array $keys
-     *
-     * @return mixed return a Promise
+     * {@inheritdoc}
      */
     public function loadMany($keys)
     {
@@ -141,10 +125,7 @@ class DataLoader
     }
 
     /**
-     * Clears the value at `key` from the cache, if it exists.
-     *
-     * @param $key
-     * @return $this
+     * {@inheritdoc}
      */
     public function clear($key)
     {
@@ -156,10 +137,7 @@ class DataLoader
     }
 
     /**
-     * Clears the entire cache. To be used when some event results in unknown
-     * invalidations across this particular `DataLoader`.
-     *
-     * @return $this
+     * {@inheritdoc}
      */
     public function clearAll()
     {
@@ -169,11 +147,7 @@ class DataLoader
     }
 
     /**
-     * Adds the provided key and value to the cache. If the key already exists, no
-     * change is made. Returns itself for method chaining.
-     * @param $key
-     * @param $value
-     * @return $this
+     * {@inheritdoc}
      */
     public function prime($key, $value)
     {
@@ -232,10 +206,7 @@ class DataLoader
     }
 
     /**
-     * @param $promise
-     * @param bool $unwrap controls whether or not the value of the promise is returned for a fulfilled promise or if an exception is thrown if the promise is rejected
-     * @return mixed
-     * @throws \Exception
+     * {@inheritdoc}
      */
     public static function await($promise = null, $unwrap = true)
     {
