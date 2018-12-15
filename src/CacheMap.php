@@ -17,38 +17,26 @@ class CacheMap
 
     public function get($key)
     {
-        $index = $this->getPromiseCacheIndexByKey($key);
-        if (null === $index) {
-            return null;
-        }
+        $key = self::serializedKey($key);
 
-        return $this->promiseCache[$index]['promise'];
+        return isset($this->promiseCache[$key]) ? $this->promiseCache[$key] : null;
     }
 
     public function has($key)
     {
-        $index = $this->getPromiseCacheIndexByKey($key);
-        if (null === $index) {
-            return false;
-        }
-
-        return true;
+        return isset($this->promiseCache[self::serializedKey($key)]);
     }
 
     public function set($key, $promise)
     {
-        $this->promiseCache[] = [
-            'key' => $key,
-            'promise' => $promise,
-        ];
+        $this->promiseCache[self::serializedKey($key)] = $promise;
 
         return $this;
     }
 
     public function clear($key)
     {
-        $index = $this->getPromiseCacheIndexByKey($key);
-        unset($this->promiseCache[$index]);
+        unset($this->promiseCache[self::serializedKey($key)]);
 
         return $this;
     }
@@ -60,13 +48,14 @@ class CacheMap
         return $this;
     }
 
-    private function getPromiseCacheIndexByKey($cacheKey)
+    private static function serializedKey($key)
     {
-        foreach ($this->promiseCache as $index => $data) {
-            if ($data['key'] === $cacheKey) {
-                return $index;
-            }
+        if (is_object($key)) {
+            return spl_object_hash($key);
+        } elseif (is_array($key)) {
+            return json_encode($key);
         }
-        return null;
+
+        return $key;
     }
 }
