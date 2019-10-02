@@ -408,7 +408,7 @@ class DataLoader implements DataLoaderInterface
                     }
                 };
             }
-        )->then(null, function ($error) use ($queue) {
+        )->then(null, function ($error) use ($queue, $context) {
             $this->failedDispatch($queue, $context, $error);
         });
     }
