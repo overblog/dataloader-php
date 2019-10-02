@@ -63,11 +63,11 @@ class DataLoader implements DataLoaderInterface
         // Determine options
         $shouldBatch = $this->options->shouldBatch();
         $shouldCache = $this->options->shouldCache();
-        $cacheKey = $this->getCacheKeyFromKey($key);
+        $cacheKey = $this->getCacheKeyFromKey($key, $context);
 
         // If caching and there is a cache-hit, return cached Promise.
         if ($shouldCache) {
-            $cachedPromise = $this->promiseCache->get($cacheKey);
+            $cachedPromise = $this->promiseCache->get($cacheKey, $context);
             if ($cachedPromise) {
                 return $cachedPromise;
             }
@@ -84,7 +84,28 @@ class DataLoader implements DataLoaderInterface
             }
         );
 
-        $this->queue[] = [
+        // Find existing queue entry by context.
+        $queue = null;
+        foreach ($this->queue as $k => $queueEntry) {
+            if ($queueEntry['context'] === $context) {
+                $queue = &$this->queue[$k]['values'];
+
+                break;
+            }
+        }
+
+        if ($queue === null) {
+            // Create empty queue with context.
+            $this->queue[] = [
+                'context' => $context,
+                'values' => [],
+            ];
+
+            $queue = &$this->queue[count($this->queue) - 1]['values'];
+        }
+
+        // Add new entry to queue.
+        $queue[] = [
             'key' => $key,
             'resolve' => $resolve,
             'reject' => $reject,
@@ -94,7 +115,7 @@ class DataLoader implements DataLoaderInterface
         // Determine if a dispatch of this queue should be scheduled.
         // A single dispatch should be scheduled per queue at the time when the
         // queue changes from "empty" to "full".
-        if (count($this->queue) === 1) {
+        if (count($queue) === 1) {
             if (!$shouldBatch) {
                 // Otherwise dispatch the (queue of one) immediately.
                 $this->dispatchQueue();
@@ -102,7 +123,7 @@ class DataLoader implements DataLoaderInterface
         }
         // If caching, cache this promise.
         if ($shouldCache) {
-            $this->promiseCache->set($cacheKey, $promise);
+            $this->promiseCache->set($cacheKey, $promise, $context);
         }
 
         return $promise;
@@ -127,11 +148,11 @@ class DataLoader implements DataLoaderInterface
     /**
      * {@inheritdoc}
      */
-    public function clear($key)
+    public function clear($key, $context = null)
     {
         $this->checkKey($key, __METHOD__);
-        $cacheKey = $this->getCacheKeyFromKey($key);
-        $this->promiseCache->clear($cacheKey);
+        $cacheKey = $this->getCacheKeyFromKey($key, $context);
+        $this->promiseCache->clear($cacheKey, $context);
 
         return $this;
     }
@@ -149,19 +170,19 @@ class DataLoader implements DataLoaderInterface
     /**
      * {@inheritdoc}
      */
-    public function prime($key, $value)
+    public function prime($key, $value, $context = null)
     {
         $this->checkKey($key, __METHOD__);
 
-        $cacheKey = $this->getCacheKeyFromKey($key);
+        $cacheKey = $this->getCacheKeyFromKey($key, $context);
 
         // Only add the key if it does not already exist.
-        if (!$this->promiseCache->has($cacheKey)) {
+        if (!$this->promiseCache->has($cacheKey, $context)) {
             // Cache a rejected promise if the value is an Error, in order to match
             // the behavior of load(key).
             $promise = $value instanceof \Exception ? $this->getPromiseAdapter()->createRejected($value) : $this->getPromiseAdapter()->createFulfilled($value);
 
-            $this->promiseCache->set($cacheKey, $promise);
+            $this->promiseCache->set($cacheKey, $promise, $context);
         }
 
         return $this;
@@ -170,11 +191,13 @@ class DataLoader implements DataLoaderInterface
     public function __destruct()
     {
         if ($this->needProcess()) {
-            foreach ($this->queue as $data) {
-                try {
-                    $this->getPromiseAdapter()->cancel($data['promise']);
-                } catch (\Exception $e) {
-                    // no need to do nothing if cancel failed
+            foreach ($this->queue as $queueEntry) {
+                foreach ($queueEntry['values'] as $data) {
+                    try {
+                        $this->getPromiseAdapter()->cancel($data['promise']);
+                    } catch (\Exception $e) {
+                        // no need to do nothing if cancel failed
+                    }
                 }
             }
             $this->await();
@@ -272,13 +295,14 @@ class DataLoader implements DataLoaderInterface
 
     /**
      * @param $key
+     * @param mixed $context
      *
      * @return mixed
      */
-    protected function getCacheKeyFromKey($key)
+    protected function getCacheKeyFromKey($key, $context)
     {
         $cacheKeyFn = $this->options->getCacheKeyFn();
-        $cacheKey = $cacheKeyFn ? $cacheKeyFn($key) : $key;
+        $cacheKey = $cacheKeyFn ? $cacheKeyFn($key, $context) : $key;
 
         return $cacheKey;
     }
@@ -305,34 +329,37 @@ class DataLoader implements DataLoaderInterface
         // Take the current loader queue, replacing it with an empty queue.
         $queue = $this->queue;
         $this->queue = [];
-        $queueLength = count($queue);
-        // If a maxBatchSize was provided and the queue is longer, then segment the
-        // queue into multiple batches, otherwise treat the queue as a single batch.
-        $maxBatchSize = $this->options->getMaxBatchSize();
-        if ($maxBatchSize && $maxBatchSize > 0 && $maxBatchSize < $queueLength) {
-            for ($i = 0; $i < $queueLength / $maxBatchSize; $i++) {
-                $offset = $i * $maxBatchSize;
-                $length = ($i + 1) * $maxBatchSize - $offset;
 
-                $this->dispatchQueueBatch(array_slice($queue, $offset, $length));
+        foreach ($queue as $queueEntry) {
+            $queueLength = count($queueEntry['values']);
+            // If a maxBatchSize was provided and the queue is longer, then segment the
+            // queue into multiple batches, otherwise treat the queue as a single batch.
+            $maxBatchSize = $this->options->getMaxBatchSize();
+            if ($maxBatchSize && $maxBatchSize > 0 && $maxBatchSize < $queueLength) {
+                for ($i = 0; $i < $queueLength / $maxBatchSize; $i++) {
+                    $offset = $i * $maxBatchSize;
+                    $length = ($i + 1) * $maxBatchSize - $offset;
+
+                    $this->dispatchQueueBatch(array_slice($queueEntry['values'], $offset, $length), $queueEntry['context']);
+                }
+            } else {
+                $this->dispatchQueueBatch($queueEntry['values'], $queueEntry['context']);
             }
-        } else {
-            $this->dispatchQueueBatch($queue);
         }
     }
 
-    private function dispatchQueueBatch(array $queue)
+    private function dispatchQueueBatch(array $queue, $context)
     {
         // Collect all keys to be loaded in this dispatch
         $keys = array_column($queue, 'key');
 
         // Call the provided batchLoadFn for this loader with the loader queue's keys.
         $batchLoadFn = $this->batchLoadFn;
-        $batchPromise = $batchLoadFn($keys);
+        $batchPromise = $batchLoadFn($keys, $context);
 
         // Assert the expected response from batchLoadFn
         if (!$batchPromise || !is_callable([$batchPromise, 'then'])) {
-            $this->failedDispatch($queue, new \RuntimeException(
+            $this->failedDispatch($queue, $context, new \RuntimeException(
                 'DataLoader must be constructed with a function which accepts ' .
                 'Array<key> and returns Promise<Array<value>>, but the function did ' .
                 sprintf('not return a Promise: %s.', gettype($batchPromise))
@@ -372,7 +399,7 @@ class DataLoader implements DataLoaderInterface
                 };
             }
         )->then(null, function ($error) use ($queue) {
-            $this->failedDispatch($queue, $error);
+            $this->failedDispatch($queue, $context, $error);
         });
     }
 
@@ -380,12 +407,13 @@ class DataLoader implements DataLoaderInterface
      * Do not cache individual loads if the entire batch dispatch fails,
      * but still reject each request so they do not hang.
      * @param array      $queue
+     * @param mixed      $context
      * @param \Exception $error
      */
-    private function failedDispatch($queue, \Exception $error)
+    private function failedDispatch($queue, $context, \Exception $error)
     {
         foreach ($queue as $index => $data) {
-            $this->clear($data['key']);
+            $this->clear($data['key'], $context);
             $data['reject']($error);
         }
     }

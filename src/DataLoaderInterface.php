@@ -45,9 +45,10 @@ interface DataLoaderInterface
      * Clears the value at `key` from the cache, if it exists.
      *
      * @param $key
+     * @param mixed $context
      * @return $this
      */
-    public function clear($key);
+    public function clear($key, $context = null);
 
     /**
      * Clears the entire cache. To be used when some event results in unknown
@@ -62,9 +63,10 @@ interface DataLoaderInterface
      * change is made. Returns itself for method chaining.
      * @param $key
      * @param $value
+     * @param mixed $context
      * @return $this
      */
-    public function prime($key, $value);
+    public function prime($key, $value, $context = null);
 
     /**
      * @param $promise

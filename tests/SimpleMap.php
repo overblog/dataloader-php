@@ -15,39 +15,8 @@ use Overblog\DataLoader\CacheMap;
 
 class SimpleMap extends CacheMap
 {
-    /**
-     * @var \ArrayObject
-     */
-    public $stash;
-
-    public function __construct()
+    public function getStash()
     {
-        $this->clearAll();
-    }
-
-    public function get($key)
-    {
-        return isset($this->stash[$key]) ? $this->stash[$key] : null;
-    }
-
-    public function set($key, $value)
-    {
-        $this->stash[$key] = $value;
-
-        return $this;
-    }
-
-    public function clear($key)
-    {
-        unset($this->stash[$key]);
-
-        return $this;
-    }
-
-    public function clearAll()
-    {
-        $this->stash = new  \ArrayObject();
-
-        return $this;
+        return $this->promiseCache;
     }
 }

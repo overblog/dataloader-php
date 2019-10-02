@@ -105,6 +105,24 @@ with the original keys `[ 2, 9, 6, 1 ]`:
 ]
 ```
 
+##### Providing context values to batch function
+
+There might be some cases when providing a context value to batch function could prove useful.
+For instance, when loading data from elasticsearch you can specify what fields to load,
+in order to not load the entire document.
+
+This context values can be passed with `load()`or `loadMany()` methods. The library will group by
+this context value (using === equality) and pass the context to batch function. The function will
+then be able to do the query based on this context value:
+
+```php
+// This will make 2 batch calls, but the content will be loaded only for the first document.
+// When using graphql, this can be the list of fields that are passed in the query.
+$documentLoader->load(1, ['title', 'content']);
+$documentLoader->load(2, ['title']);
+$documentLoader->load(3, ['title']);
+```
+
 
 ### Caching (current PHP instance)
 
@@ -248,37 +266,40 @@ Create a new `DataLoaderPHP` given a batch loading instance and options.
   - *cacheMap*: An instance of `CacheMap` to be
     used as the underlying cache for this loader. Default `new CacheMap()`.
 
-##### `load($key)`
+##### `load($key, $context = null)`
 
 Loads a key, returning a `Promise` for the value represented by that key.
 
 - *$key*: An key value to load.
+- *$context*: A value to be passed to loader method.
 
-##### `loadMany($keys)`
+##### `loadMany($keys, $context = null)`
 
 Loads multiple keys, promising an array of values:
 
 ```php
-list($a, $b) = DataLoader::await($myLoader->loadMany(['a', 'b']));
+list($a, $b) = DataLoader::await($myLoader->loadMany(['a', 'b'], true));
 ```
 
 This is equivalent to the more verbose:
 
 ```php
 list($a, $b) = DataLoader::await(\React\Promise\all([
-  $myLoader->load('a'),
-  $myLoader->load('b')
+  $myLoader->load('a', true),
+  $myLoader->load('b', true)
 ]));
 ```
 
 - *$keys*: An array of key values to load.
+- *$context*: A value to be passed to loader method.
 
-##### `clear($key)`
+##### `clear($key, $context = null)`
 
 Clears the value at `$key` from the cache, if it exists. Returns itself for
 method chaining.
 
 - *$key*: An key value to clear.
+- *$context*: A value for which to clear given key. 
 
 ##### `clearAll()`
 
@@ -286,9 +307,9 @@ Clears the entire cache. To be used when some event results in unknown
 invalidations across this particular `DataLoaderPHP`. Returns itself for
 method chaining.
 
-##### `prime($key, $value)`
+##### `prime($key, $value, $context = null)`
 
-Primes the cache with the provided key and value. If the key already exists, no
+Primes the cache with the provided key and value, grouped by given context value. If the key already exists, no
 change is made. (To forcefully prime the cache, clear the key first with
 `$loader->clear($key)->prime($key, $value)`. Returns itself for method chaining.
 

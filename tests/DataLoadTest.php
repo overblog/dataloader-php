@@ -674,13 +674,13 @@ class DataLoadTest extends TestCase
         $this->assertEquals('a', $valueA);
         $this->assertEquals('b', $valueB1);
         $this->assertEquals([['a', 'b']], $loadCalls->getArrayCopy());
-        $this->assertEquals(['a', 'b'], array_keys($aCustomMap->stash->getArrayCopy()));
+        $this->assertEquals(['a', 'b'], array_keys($aCustomMap->getStash()[0]['values']));
 
         list($valueC, $valueB2) = DataLoader::await(self::$promiseAdapter->createAll([$identityLoader->load('c'), $identityLoader->load('b')]));
         $this->assertEquals('c', $valueC);
         $this->assertEquals('b', $valueB2);
         $this->assertEquals([['a', 'b'], ['c']], $loadCalls->getArrayCopy());
-        $this->assertEquals(['a', 'b', 'c'], array_keys($aCustomMap->stash->getArrayCopy()));
+        $this->assertEquals(['a', 'b', 'c'], array_keys($aCustomMap->getStash()[0]['values']));
 
         // Supports clear
 
@@ -688,12 +688,12 @@ class DataLoadTest extends TestCase
         $valueB3 = DataLoader::await($identityLoader->load('b'));
         $this->assertEquals('b', $valueB3);
         $this->assertEquals([['a', 'b'], ['c'], ['b']], $loadCalls->getArrayCopy());
-        $this->assertEquals(['a', 'c', 'b'], array_keys($aCustomMap->stash->getArrayCopy()));
+        $this->assertEquals(['a', 'c', 'b'], array_keys($aCustomMap->getStash()[0]['values']));
 
         // Supports clear all
 
         $identityLoader->clearAll();
-        $this->assertEquals([], $aCustomMap->stash->getArrayCopy());
+        $this->assertEquals([], $aCustomMap->getStash());
     }
 
     /**

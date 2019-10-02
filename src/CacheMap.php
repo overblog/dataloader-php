@@ -13,30 +13,63 @@ namespace Overblog\DataLoader;
 
 class CacheMap
 {
-    private $promiseCache = [];
+    protected $promiseCache = [];
 
-    public function get($key)
+    public function get($key, $context = null)
     {
         $key = self::serializedKey($key);
+        foreach ($this->promiseCache as $cache) {
+            if ($cache['context'] === $context) {
+                return isset($cache['values'][$key]) ? $cache['values'][$key] : null;
+            }
+        }
 
-        return isset($this->promiseCache[$key]) ? $this->promiseCache[$key] : null;
+        return null;
     }
 
-    public function has($key)
+    public function has($key, $context = null)
     {
-        return isset($this->promiseCache[self::serializedKey($key)]);
+        foreach ($this->promiseCache as $cache) {
+            if ($cache['context'] === $context) {
+                return isset($cache['values'][self::serializedKey($key)]);
+            }
+        }
+
+        return false;
     }
 
-    public function set($key, $promise)
+    public function set($key, $promise, $context = null)
     {
-        $this->promiseCache[self::serializedKey($key)] = $promise;
+        foreach ($this->promiseCache as $k => $cache) {
+            if ($cache['context'] === $context) {
+                $this->promiseCache[$k]['values'][self::serializedKey($key)] = $promise;
+
+                return $this;
+            }
+        }
+
+        $this->promiseCache[] = [
+            'context' => $context,
+            'values' => [
+                self::serializedKey($key) => $promise,
+            ],
+        ];
 
         return $this;
     }
 
-    public function clear($key)
+    public function clear($key, $context = null)
     {
-        unset($this->promiseCache[self::serializedKey($key)]);
+        foreach ($this->promiseCache as $k => $cache) {
+            if ($cache['context'] === $context) {
+                unset($this->promiseCache[$k]['values'][self::serializedKey($key)]);
+                if (count($this->promiseCache[$k]['values']) === 0) {
+                    unset($this->promiseCache[$k]);
+                }
+
+                break;
+            }
+        }
 
         return $this;
     }
