@@ -17,10 +17,11 @@ interface DataLoaderInterface
      * Loads a key, returning a `Promise` for the value represented by that key.
      *
      * @param string $key
+     * @param mixed $context
      *
      * @return mixed return a Promise
      */
-    public function load($key);
+    public function load($key, $context = null);
 
     /**
      * Loads multiple keys, promising an array of values:
@@ -34,10 +35,11 @@ interface DataLoaderInterface
      *       $myLoader->load('b')
      *     ]);
      * @param array $keys
+     * @param mixed $context
      *
      * @return mixed return a Promise
      */
-    public function loadMany($keys);
+    public function loadMany($keys, $context = null);
 
     /**
      * Clears the value at `key` from the cache, if it exists.

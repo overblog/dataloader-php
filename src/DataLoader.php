@@ -57,7 +57,7 @@ class DataLoader implements DataLoaderInterface
     /**
      * {@inheritdoc}
      */
-    public function load($key)
+    public function load($key, $context = null)
     {
         $this->checkKey($key, __METHOD__);
         // Determine options
@@ -111,14 +111,14 @@ class DataLoader implements DataLoaderInterface
     /**
      * {@inheritdoc}
      */
-    public function loadMany($keys)
+    public function loadMany($keys, $context = null)
     {
         if (!is_array($keys) && !$keys instanceof \Traversable) {
             throw new \InvalidArgumentException(sprintf('The "%s" method must be called with Array<key> but got: %s.', __METHOD__, gettype($keys)));
         }
         return $this->getPromiseAdapter()->createAll(array_map(
-            function ($key) {
-                return $this->load($key);
+            function ($key) use ($context) {
+                return $this->load($key, $context);
             },
             $keys
         ));

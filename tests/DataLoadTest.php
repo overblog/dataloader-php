@@ -94,6 +94,26 @@ class DataLoadTest extends TestCase
         $this->assertEquals([[1, 2], [3]], $loadCalls->getArrayCopy());
     }
 
+    public function testBatchesMultipleRequestsByContext()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader();
+
+        $promise1 = $identityLoader->load(1, 1);
+        $promise2 = $identityLoader->load(2, 2);
+        $promise3 = $identityLoader->load(3, 1);
+
+        list($value1, $value2, $value3) = DataLoader::await(self::$promiseAdapter->createAll([$promise1, $promise2, $promise3]));
+        $this->assertEquals(1, $value1);
+        $this->assertEquals(2, $value2);
+        $this->assertEquals(3, $value3);
+
+        $this->assertEquals([[1, 3], [2]], $loadCalls->getArrayCopy());
+    }
+
     /**
      * @group primary-api
      */
