@@ -42,13 +42,22 @@ interface DataLoaderInterface
     public function loadMany($keys, $context = null);
 
     /**
-     * Clears the value at `key` from the cache, if it exists.
+     * Clears the value at `key` from the cache with `context`, if it exists.
      *
      * @param $key
      * @param mixed $context
      * @return $this
      */
     public function clear($key, $context = null);
+
+    /**
+     * Clears the value at `key` from the cache, if it exists.
+     *
+     * @param $key
+     * @param mixed $context
+     * @return $this
+     */
+    public function clearKey($key);
 
     /**
      * Clears the entire cache. To be used when some event results in unknown

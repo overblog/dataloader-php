@@ -301,6 +301,13 @@ method chaining.
 - *$key*: An key value to clear.
 - *$context*: A value for which to clear given key. 
 
+##### `clearKey($key)`
+
+Clears the value at `$key` from the cache for all context values, if it exists. Returns itself for
+method chaining.
+
+- *$key*: An key value to clear.
+
 ##### `clearAll()`
 
 Clears the entire cache. To be used when some event results in unknown

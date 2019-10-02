@@ -94,13 +94,17 @@ class DataLoadTest extends TestCase
         $this->assertEquals([[1, 2], [3]], $loadCalls->getArrayCopy());
     }
 
+    /**
+     * @group primary-api
+     */
     public function testBatchesMultipleRequestsByContext()
     {
         /**
          * @var DataLoader $identityLoader
          * @var \ArrayObject $loadCalls
+         * @var \ArrayObject $loadContexts
          */
-        list($identityLoader, $loadCalls) = self::idLoader();
+        list($identityLoader, $loadCalls, $loadContexts) = self::idLoader();
 
         $promise1 = $identityLoader->load(1, 1);
         $promise2 = $identityLoader->load(2, 2);
@@ -112,6 +116,7 @@ class DataLoadTest extends TestCase
         $this->assertEquals(3, $value3);
 
         $this->assertEquals([[1, 3], [2]], $loadCalls->getArrayCopy());
+        $this->assertEquals([1, 2], $loadContexts->getArrayCopy());
     }
 
     /**
@@ -186,6 +191,30 @@ class DataLoadTest extends TestCase
         $this->assertEquals('A', $a2);
         $this->assertEquals('B', $b2);
         $this->assertEquals([['A', 'B'], ['A']], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group primary-api
+     */
+    public function testClearsSingleKeyInLoader()
+    {
+        /**
+         * @var DataLoader $identityLoader
+         * @var \ArrayObject $loadCalls
+         */
+        list($identityLoader, $loadCalls) = self::idLoader();
+
+        list($a, $b, $bPrime) = DataLoader::await(self::$promiseAdapter->createAll([$identityLoader->load('A'), $identityLoader->load('B'), $identityLoader->load('B', 1)]));
+        $this->assertEquals('A', $a);
+        $this->assertEquals('B', $b);
+        $this->assertEquals('B', $bPrime);
+        $this->assertEquals([['A', 'B'], ['B']], $loadCalls->getArrayCopy());
+
+        $identityLoader->clearKey('B');
+        list($a2, $b2) = DataLoader::await(self::$promiseAdapter->createAll([$identityLoader->load('A'), $identityLoader->load('B')]));
+        $this->assertEquals('A', $a2);
+        $this->assertEquals('B', $b2);
+        $this->assertEquals([['A', 'B'], ['B'], ['B']], $loadCalls->getArrayCopy());
     }
 
     /**
@@ -690,6 +719,10 @@ class DataLoadTest extends TestCase
         $this->assertEquals([['a', 'b'], ['c'], ['b']], $loadCalls->getArrayCopy());
         $this->assertEquals(['a', 'c', 'b'], array_keys($aCustomMap->getStash()[0]['values']));
 
+        // Supports clear key
+
+
+
         // Supports clear all
 
         $identityLoader->clearAll();
@@ -904,19 +937,21 @@ class DataLoadTest extends TestCase
     private static function idLoader(Option $options = null, callable $batchLoadFnCallBack = null)
     {
         $loadCalls = new \ArrayObject();
+        $loadContexts = new \ArrayObject();
         if (null === $batchLoadFnCallBack) {
             $batchLoadFnCallBack = function ($keys) {
                 return self::$promiseAdapter->createFulfilled($keys);
             };
         }
 
-        $identityLoader = new DataLoader(function ($keys) use (&$loadCalls, $batchLoadFnCallBack) {
+        $identityLoader = new DataLoader(function ($keys, $context) use (&$loadCalls, &$loadContexts, $batchLoadFnCallBack) {
             $loadCalls[] = $keys;
+            $loadContexts[] = $context;
 
             return $batchLoadFnCallBack($keys);
         }, self::$promiseAdapter, $options);
 
-        return [$identityLoader, $loadCalls];
+        return [$identityLoader, $loadCalls, $loadContexts];
     }
 
     private function assertInstanceOfPromise($object)

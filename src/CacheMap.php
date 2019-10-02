@@ -62,10 +62,7 @@ class CacheMap
     {
         foreach ($this->promiseCache as $k => $cache) {
             if ($cache['context'] === $context) {
-                unset($this->promiseCache[$k]['values'][self::serializedKey($key)]);
-                if (count($this->promiseCache[$k]['values']) === 0) {
-                    unset($this->promiseCache[$k]);
-                }
+                $this->removeValue($k, $key);
 
                 break;
             }
@@ -74,11 +71,26 @@ class CacheMap
         return $this;
     }
 
+    public function clearKey($key)
+    {
+        foreach ($this->promiseCache as $k => $cache) {
+            $this->removeValue($k, $key);
+        }
+    }
+
     public function clearAll()
     {
         $this->promiseCache = [];
 
         return $this;
+    }
+
+    private function removeValue($index, $key)
+    {
+        unset($this->promiseCache[$index]['values'][self::serializedKey($key)]);
+        if (count($this->promiseCache[$index]['values']) === 0) {
+            unset($this->promiseCache[$index]);
+        }
     }
 
     private static function serializedKey($key)

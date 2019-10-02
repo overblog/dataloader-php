@@ -158,6 +158,16 @@ class DataLoader implements DataLoaderInterface
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public function clearKey($key)
+    {
+        $this->promiseCache->clearKey($key);
+
+        return $this;
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function clearAll()
