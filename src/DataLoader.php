@@ -235,7 +235,7 @@ class DataLoader implements DataLoaderInterface
             //Promise is completed?
             if ($isPromiseCompleted) {
                 // rejected ?
-                if ($rejectedReason instanceof \Exception) {
+                if ($rejectedReason instanceof \Exception || (interface_exists('\Throwable') && $rejectedReason instanceof \Throwable)) {
                     if (!$unwrap) {
                         return $rejectedReason;
                     }

@@ -846,13 +846,34 @@ class DataLoadTest extends TestCase
         DataLoader::await(self::$promiseAdapter->createRejected(new \Exception('Rejected!')));
     }
 
+    /**
+     * @runInSeparateProcess
+     *
+     * We cannot use the standard expectedException annotations here since the class does not exist in PHP5.
+     */
+    public function testAwaitShouldThrowThrowable()
+    {
+        if (PHP_MAJOR_VERSION >= 7) {
+            try {
+                DataLoader::await(self::$promiseAdapter->createRejected(new \Error('Rejected Error!')));
+
+                // If we got here, it means no Error is thrown, so fail the test
+                throw new \Exception("Expected \Error to be thrown.");
+            } catch (\Error $error) {
+                if ($error->getMessage() != 'Rejected Error!') {
+                    throw new \Exception("Expected Rejected Error! as message, but got: " . $error->getMessage());
+                }
+            }
+        }
+    }
+
     public function cacheKey($key)
     {
         $cacheKey = [];
         $key = (array)$key;
         ksort($key);
         foreach ($key as $k => $value) {
-            $cacheKey[] = $k.':'.$value;
+            $cacheKey[] = $k . ':' . $value;
         }
 
         return implode(',', $cacheKey);
