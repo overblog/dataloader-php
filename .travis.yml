@@ -26,7 +26,7 @@ before_install:
   - phpenv config-rm xdebug.ini || true
   - composer selfupdate
 
-install: composer update --prefer-dist --no-interaction
+install: composer update --prefer-source --no-interaction
 
 script:
   - composer check-platform-reqs
