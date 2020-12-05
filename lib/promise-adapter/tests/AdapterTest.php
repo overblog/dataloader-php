@@ -16,7 +16,7 @@ use Overblog\PromiseAdapter\Adapter\ReactPromiseAdapter;
 use Overblog\PromiseAdapter\Adapter\WebonyxGraphQLSyncPromiseAdapter;
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
-class AdapterTest extends \PHPUnit_Framework_TestCase
+class AdapterTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * @dataProvider AdapterDataProvider
