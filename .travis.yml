@@ -10,7 +10,6 @@ php:
   - 7.2
   - 7.3
   - nightly
-  - hhvm
 
 branches:
   only:
@@ -27,7 +26,7 @@ cache:
     - $HOME/.composer/cache
 
 before_install:
-  - if [[ "$TRAVIS_PHP_VERSION" != "5.6" && "$TRAVIS_PHP_VERSION" != "hhvm" ]]; then phpenv config-rm xdebug.ini || true; fi
+  - if [ "$TRAVIS_PHP_VERSION" != "5.6" ]; then phpenv config-rm xdebug.ini || true; fi
   - composer selfupdate
 
 install: composer update --prefer-dist --no-interaction
