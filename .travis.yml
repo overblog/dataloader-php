@@ -29,5 +29,6 @@ before_install:
 install: composer update --prefer-dist --no-interaction
 
 script:
+  - composer check-platform-reqs
   - bin/phpunit --debug
   - composer require "friendsofphp/php-cs-fixer:^2.0" && bin/php-cs-fixer fix --diff --dry-run -v
