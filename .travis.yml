@@ -32,4 +32,4 @@ install: composer update --prefer-source --no-interaction
 script:
   - composer check-platform-reqs
   - bin/phpunit --debug
-  - composer require "friendsofphp/php-cs-fixer:^2.16" && bin/php-cs-fixer fix --diff --dry-run -v
+  - if [ "$TRAVIS_PHP_VERSION" != "8.0" ]; then composer require "friendsofphp/php-cs-fixer:^2.16" && bin/php-cs-fixer fix --diff --dry-run -v; fi
