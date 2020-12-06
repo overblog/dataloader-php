@@ -21,7 +21,7 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
      */
     protected static $promiseAdapter;
 
-    public function setUp()
+    public function setUp(): void
     {
         self::$promiseAdapter = new ReactPromiseAdapter();
     }
