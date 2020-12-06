@@ -31,4 +31,4 @@ install: composer update --prefer-source --no-interaction
 script:
   - composer check-platform-reqs
   - bin/phpunit --debug
-  - composer require "friendsofphp/php-cs-fixer:^2.0" && bin/php-cs-fixer fix --diff --dry-run -v
+  - composer require "friendsofphp/php-cs-fixer:^2.16" && bin/php-cs-fixer fix --diff --dry-run -v
