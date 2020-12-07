@@ -81,6 +81,6 @@ class Schema
             ]
         ]);
 
-        return new \GraphQL\Schema(['query' => $queryType]);
+        return new \GraphQL\Type\Schema(['query' => $queryType]);
     }
 }

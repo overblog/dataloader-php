@@ -1,16 +1,14 @@
-dist: trusty
+dist: bionic
 
 language: php
 
 php:
-  - 5.5
-  - 5.6
-  - 7.0
   - 7.1
   - 7.2
   - 7.3
+  - 7.4
+  - 8.0
   - nightly
-  - hhvm
 
 branches:
   only:
@@ -20,21 +18,18 @@ branches:
 matrix:
   allow_failures:
     - php: nightly
-    - php: 7.3
 
 cache:
   directories:
     - $HOME/.composer/cache
 
 before_install:
-  - if [[ "$TRAVIS_PHP_VERSION" != "5.6" && "$TRAVIS_PHP_VERSION" != "hhvm" ]]; then phpenv config-rm xdebug.ini || true; fi
+  - phpenv config-rm xdebug.ini || true
   - composer selfupdate
 
-install: composer update --prefer-dist --no-interaction
+install: composer update --prefer-source --no-interaction
 
 script:
-  - if [ "$TRAVIS_PHP_VERSION" == "5.6" ]; then bin/phpunit --debug --coverage-clover build/logs/clover.xml; else bin/phpunit --debug; fi
-  - if [ "$TRAVIS_PHP_VERSION" == "7.0" ]; then composer require "friendsofphp/php-cs-fixer:^2.0" && bin/php-cs-fixer fix --diff --dry-run -v; fi;
-
-after_success:
-  - if [ "$TRAVIS_PHP_VERSION" == "5.6" ]; then composer require "satooshi/php-coveralls:^1.0" && travis_retry php bin/coveralls -v; fi
+  - composer check-platform-reqs
+  - bin/phpunit --debug
+  - if [ "$TRAVIS_PHP_VERSION" != "8.0" ]; then composer require "friendsofphp/php-cs-fixer:^2.16" && bin/php-cs-fixer fix --diff --dry-run -v; fi

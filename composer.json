@@ -27,13 +27,13 @@
     "overblog/promise-adapter": "self.version"
   },
   "require": {
-    "php": "^5.5|^7.0"
+    "php": "^7.1|^8.0"
   },
   "require-dev": {
     "guzzlehttp/promises": "^1.3.0",
-    "phpunit/phpunit": "^4.1|^5.1",
+    "phpunit/phpunit": "^7.5|^8.5",
     "react/promise": "^2.5.0",
-    "webonyx/graphql-php": "^0.11.0"
+    "webonyx/graphql-php": "^14.0"
   },
   "suggest": {
     "guzzlehttp/promises": "To use with Guzzle promise",
