@@ -11,6 +11,8 @@
 
 namespace Overblog\DataLoader\Test\Functional\Webonyx\GraphQL;
 
+use GraphQL\Executor\ExecutionResult;
+use GraphQL\Executor\Promise\Adapter\SyncPromiseAdapter;
 use GraphQL\Executor\Promise\Promise;
 use GraphQL\Executor\Promise\PromiseAdapter;
 use GraphQL\GraphQL;
@@ -75,17 +77,23 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
         ];
 
         $graphQLPromiseAdapter = $this->createGraphQLPromiseAdapter();
-        GraphQL::setPromiseAdapter($graphQLPromiseAdapter);
         $dataLoaderPromiseAdapter = $this->createDataLoaderPromiseAdapter($graphQLPromiseAdapter);
         $dataLoader = $this->createDataLoader($dataLoaderPromiseAdapter, $metrics['callsIds'], $metrics['calls']);
         $schema = Schema::build($dataLoader);
 
-        $response = GraphQL::execute($schema, $query);
-        if ($response instanceof Promise) {
-            $response = DataLoader::await($response);
+        $result = GraphQL::promiseToExecute($graphQLPromiseAdapter, $schema, $query);
+        if ($graphQLPromiseAdapter instanceof SyncPromiseAdapter) {
+            $result = $graphQLPromiseAdapter->wait($result)->toArray();
+        } else {
+            $result = $result->then(static function (ExecutionResult $r) : array {
+                return $r->toArray();
+            });
+        }
+        if ($result instanceof Promise) {
+            $result = DataLoader::await($result);
         }
 
-        $this->assertEquals($expectedResponse, $response);
+        $this->assertEquals($expectedResponse, $result);
         $this->assertEquals($expectedMetrics, $metrics);
 
         $dataLoader->clearAll();
