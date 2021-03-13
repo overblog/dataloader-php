@@ -783,7 +783,7 @@ class DataLoadTest extends TestCase
 
     public function testCallingAwaitFunctionWhenNoInstanceOfDataLoaderShouldNotThrowError()
     {
-        DataLoader::await();
+        self::assertNull(DataLoader::await());
     }
 
     public function testAwaitAlsoAwaitsNewlyCreatedDataloaders()
@@ -837,34 +837,25 @@ class DataLoadTest extends TestCase
     }
 
     /**
-     * @expectedException \Exception
-     * @expectedExceptionMessage Rejected!
      * @runInSeparateProcess
      */
     public function testAwaitShouldThrowTheRejectReasonOfRejectedPromiseWithoutNeedingActiveDataLoaderInstance()
     {
-        DataLoader::await(self::$promiseAdapter->createRejected(new \Exception('Rejected!')));
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Rejected!');
+        
+        DataLoader::await(self::$promiseAdapter->createRejected(new Exception('Rejected!')));
     }
 
     /**
      * @runInSeparateProcess
-     *
-     * We cannot use the standard expectedException annotations here since the class does not exist in PHP5.
      */
     public function testAwaitShouldThrowThrowable()
     {
-        if (PHP_MAJOR_VERSION >= 7) {
-            try {
-                DataLoader::await(self::$promiseAdapter->createRejected(new \Error('Rejected Error!')));
+        $this->expectException(\Error::class);
+        $this->expectExceptionMessage('Rejected Error!');
 
-                // If we got here, it means no Error is thrown, so fail the test
-                throw new \Exception("Expected \Error to be thrown.");
-            } catch (\Error $error) {
-                if ($error->getMessage() != 'Rejected Error!') {
-                    throw new \Exception("Expected Rejected Error! as message, but got: " . $error->getMessage());
-                }
-            }
-        }
+        DataLoader::await(self::$promiseAdapter->createRejected(new \Error('Rejected Error!')));
     }
 
     public function cacheKey($key)
