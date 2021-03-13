@@ -17,10 +17,7 @@
     "psr-4": {
       "Overblog\\DataLoader\\Test\\": "tests/",
       "Overblog\\PromiseAdapter\\Test\\": "lib/promise-adapter/tests/"
-    },
-    "files": [
-      "vendor/webonyx/graphql-php/tests/StarWarsData.php"
-    ]
+    }
   },
   "replace": {
     "overblog/promise-adapter": "self.version"
