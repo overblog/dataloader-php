@@ -11,6 +11,7 @@
 
 namespace Overblog\DataLoader\Test;
 
+use \Exception;
 use Overblog\DataLoader\DataLoader;
 use Overblog\DataLoader\Option;
 
@@ -843,7 +844,7 @@ class DataLoadTest extends TestCase
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Rejected!');
-        
+
         DataLoader::await(self::$promiseAdapter->createRejected(new Exception('Rejected!')));
     }
 
