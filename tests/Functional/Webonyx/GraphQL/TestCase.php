@@ -14,7 +14,6 @@ namespace Overblog\DataLoader\Test\Functional\Webonyx\GraphQL;
 use GraphQL\Executor\Promise\Promise;
 use GraphQL\Executor\Promise\PromiseAdapter;
 use GraphQL\GraphQL;
-use GraphQL\Tests\StarWarsData;
 use Overblog\DataLoader\DataLoader;
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
