@@ -7,7 +7,6 @@ data sources such as databases or web services via batching and caching.
 [![Build Status](https://travis-ci.org/overblog/dataloader-php.svg?branch=master)](https://travis-ci.org/overblog/dataloader-php)
 [![Coverage Status](https://coveralls.io/repos/github/overblog/dataloader-php/badge.svg?branch=master)](https://coveralls.io/github/overblog/dataloader-php?branch=master)
 [![Latest Stable Version](https://poser.pugx.org/overblog/dataloader-php/version)](https://packagist.org/packages/overblog/dataloader-php)
-[![License](https://poser.pugx.org/overblog/dataloader-php/license)](https://packagist.org/packages/overblog/dataloader-php)
 
 ## Requirements
 
