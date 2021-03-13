@@ -4,8 +4,8 @@ DataLoaderPHP is a generic utility to be used as part of your application's data
 fetching layer to provide a simplified and consistent API over various remote
 data sources such as databases or web services via batching and caching.
 
-[![Build Status](https://travis-ci.org/overblog/dataloader-php.svg?branch=master)](https://travis-ci.org/overblog/dataloader-php)
-[![Coverage Status](https://coveralls.io/repos/github/overblog/dataloader-php/badge.svg?branch=master)](https://coveralls.io/github/overblog/dataloader-php?branch=master)
+[![GitHub Actions][GA master image]][GA master]
+[![Code Coverage][Coverage image]][CodeCov Master]
 [![Latest Stable Version](https://poser.pugx.org/overblog/dataloader-php/version)](https://packagist.org/packages/overblog/dataloader-php)
 [![License](https://poser.pugx.org/overblog/dataloader-php/license)](https://packagist.org/packages/overblog/dataloader-php)
 
@@ -402,3 +402,8 @@ Also, large parts of the documentation have been ported from the dataLoader Node
 ## License
 
 Overblog/DataLoaderPHP is released under the [MIT](https://github.com/overblog/dataloader-php/blob/master/LICENSE) license.
+
+[Coverage image]: https://codecov.io/gh/overblog/dataloader-php/branch/master/graph/badge.svg
+[CodeCov Master]: https://codecov.io/gh/overblog/dataloader-php/branch/master
+[GA master]: https://github.com/overblog/dataloader-php/actions?query=workflow%3A%22CI%22+branch%3Amaster
+[GA master image]: https://github.com/overblog/dataloader-php/workflows/CI/badge.svg
