@@ -7,7 +7,6 @@ data sources such as databases or web services via batching and caching.
 [![GitHub Actions][GA master image]][GA master]
 [![Code Coverage][Coverage image]][CodeCov Master]
 [![Latest Stable Version](https://poser.pugx.org/overblog/dataloader-php/version)](https://packagist.org/packages/overblog/dataloader-php)
-[![License](https://poser.pugx.org/overblog/dataloader-php/license)](https://packagist.org/packages/overblog/dataloader-php)
 
 ## Requirements
 
