@@ -57,7 +57,7 @@ class DataLoader implements DataLoaderInterface
     /**
      * {@inheritdoc}
      */
-    public function load($key)
+    public function load(string $key)
     {
         $this->checkKey($key, __METHOD__);
         // Determine options
@@ -111,7 +111,7 @@ class DataLoader implements DataLoaderInterface
     /**
      * {@inheritdoc}
      */
-    public function loadMany($keys)
+    public function loadMany(array $keys)
     {
         if (!is_array($keys) && !$keys instanceof \Traversable) {
             throw new \InvalidArgumentException(sprintf('The "%s" method must be called with Array<key> but got: %s.', __METHOD__, gettype($keys)));
@@ -127,7 +127,7 @@ class DataLoader implements DataLoaderInterface
     /**
      * {@inheritdoc}
      */
-    public function clear($key)
+    public function clear(string $key): DataLoaderInterface
     {
         $this->checkKey($key, __METHOD__);
         $cacheKey = $this->getCacheKeyFromKey($key);
@@ -139,7 +139,7 @@ class DataLoader implements DataLoaderInterface
     /**
      * {@inheritdoc}
      */
-    public function clearAll()
+    public function clearAll(): DataLoaderInterface
     {
         $this->promiseCache->clearAll();
 
@@ -149,7 +149,7 @@ class DataLoader implements DataLoaderInterface
     /**
      * {@inheritdoc}
      */
-    public function prime($key, $value)
+    public function prime(string $key, $value): DataLoaderInterface
     {
         $this->checkKey($key, __METHOD__);
 
@@ -208,7 +208,7 @@ class DataLoader implements DataLoaderInterface
     /**
      * {@inheritdoc}
      */
-    public static function await($promise = null, $unwrap = true)
+    public static function await($promise = null, bool $unwrap = true)
     {
         self::awaitInstances();
 

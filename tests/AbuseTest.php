@@ -21,31 +21,9 @@ class AbuseTest extends TestCase
     /**
      * @group provides-descriptive-error-messages-for-api-abuse
      */
-    public function testLoadFunctionRequiresAKeyNotNull()
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The "Overblog\DataLoader\DataLoader::load" method must be called with a value, but got: NULL.');
-
-        self::idLoader()->load(null);
-    }
-
-    /**
-     * @group provides-descriptive-error-messages-for-api-abuse
-     */
     public function testLoadFunctionRequiresAKeyWith0()
     {
         self::assertInstanceOf(Promise::class, self::idLoader()->load(0));
-    }
-
-    /**
-     * @group provides-descriptive-error-messages-for-api-abuse
-     */
-    public function testLoadManyFunctionRequiresAListOfKey()
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The "Overblog\DataLoader\DataLoader::loadMany" method must be called with Array<key> but got: integer.');
-
-        self::idLoader()->loadMany(1, 2, 3);
     }
 
     /**
