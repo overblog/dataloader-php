@@ -17,12 +17,12 @@ use Overblog\DataLoader\DataLoader;
 
 class SyncPromiseAdapter extends BaseSyncPromiseAdapter
 {
-    protected function beforeWait(Promise $promise)
+    protected function beforeWait(Promise $promise): void
     {
         DataLoader::await();
     }
 
-    protected function onWait(Promise $promise)
+    protected function onWait(Promise $promise): void
     {
         DataLoader::await();
     }
