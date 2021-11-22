@@ -11,6 +11,9 @@
 
 namespace Overblog\PromiseAdapter;
 
+/**
+ * @template TPromise
+ */
 interface PromiseAdapterInterface
 {
     /**
@@ -20,7 +23,7 @@ interface PromiseAdapterInterface
      * @param $reject
      * @param callable $canceller
      *
-     * @return mixed a Promise
+     * @return TPromise a Promise
      */
     public function create(&$resolve = null, &$reject = null, callable $canceller = null);
 
@@ -29,7 +32,7 @@ interface PromiseAdapterInterface
      *
      * @param mixed $promiseOrValue
      *
-     * @return mixed a full filed Promise
+     * @return TPromise a full filed Promise
      */
     public function createFulfilled($promiseOrValue = null);
 
@@ -39,7 +42,7 @@ interface PromiseAdapterInterface
      *
      * @param mixed $reason
      *
-     * @return mixed a rejected promise
+     * @return TPromise a rejected promise
      */
     public function createRejected($reason);
 
@@ -49,7 +52,7 @@ interface PromiseAdapterInterface
      *
      * @param mixed $promisesOrValues Promises or values.
      *
-     * @return mixed a Promise
+     * @return TPromise a Promise
      */
     public function createAll($promisesOrValues);
 
@@ -66,14 +69,14 @@ interface PromiseAdapterInterface
     /**
      * Cancel a promise
      *
-     * @param $promise
+     * @param TPromise $promise
      */
     public function cancel($promise);
 
     /**
      * wait for Promise to complete
-     * @param mixed $promise
-     * @param bool  $unwrap
+     * @param TPromise $promise
+     * @param bool     $unwrap
      *
      * @return mixed
      */

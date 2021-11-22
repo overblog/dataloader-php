@@ -19,6 +19,9 @@ use React\Promise\Promise;
 use React\Promise\PromiseInterface;
 use React\Promise\RejectedPromise;
 
+/**
+ * @implements PromiseAdapterInterface<Promise>
+ */
 class ReactPromiseAdapter implements PromiseAdapterInterface
 {
     /**
