@@ -17,6 +17,9 @@ use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Promise\RejectedPromise;
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
+/**
+ * @implements PromiseAdapterInterface<PromiseInterface>
+ */
 class GuzzleHttpPromiseAdapter implements PromiseAdapterInterface
 {
     /**
