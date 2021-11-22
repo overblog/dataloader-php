@@ -17,6 +17,9 @@ use GraphQL\Executor\Promise\Adapter\SyncPromiseAdapter;
 use GraphQL\Executor\Promise\Promise;
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
+/**
+ * @implements PromiseAdapterInterface<Promise>
+ */
 class WebonyxGraphQLSyncPromiseAdapter implements PromiseAdapterInterface
 {
     /** @var callable[] */

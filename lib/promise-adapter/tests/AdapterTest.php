@@ -151,11 +151,12 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
      * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
      *
-     * @expectedException \Exception
-     * @expectedExceptionMessage error!
      */
     public function testAwaitWithUnwrap(PromiseAdapterInterface $Adapter)
     {
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('error!');
+
         $expected = new \Exception('error!');
         $promise = $Adapter->createRejected($expected);
 
@@ -165,24 +166,24 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
     /**
      * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
-     *
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage ::await" method must be called with a Promise ("then" method).
      */
     public function testAwaitWithInvalidPromise(PromiseAdapterInterface $Adapter)
     {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('::await" method must be called with a Promise ("then" method).');
+
         $Adapter->await(new \stdClass(), true);
     }
 
     /**
      * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
-     *
-     * @expectedException \Exception
-     * @expectedExceptionMessage Cancel promise!
      */
     public function testCancel(PromiseAdapterInterface $Adapter)
     {
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Cancel promise!');
+
         $promise = $Adapter->create($resolve, $reject, function () {
             throw new \Exception('Cancel promise!');
         });
@@ -194,12 +195,12 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
     /**
      * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
-     *
-     * @expectedException \Exception
-     * @expectedExceptionMessage ::cancel" method must be called with a compatible Promise.
      */
     public function testCancelInvalidPromise(PromiseAdapterInterface $Adapter)
     {
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('::cancel" method must be called with a compatible Promise.');
+
         $Adapter->create($resolve, $reject, function () {
             throw new \Exception('Cancel will never be called!');
         });
