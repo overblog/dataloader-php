@@ -5,8 +5,6 @@ on:
   push:
     branches:
       - "master"
-  schedule:
-    - cron: "42 3 * * *"
 
 jobs:
   phpunit:
@@ -70,3 +68,32 @@ jobs:
         uses: "codecov/codecov-action@v1"
         with:
           directory: reports
+
+  coding-standards:
+    name: "Coding Standards"
+    runs-on: "ubuntu-20.04"
+
+    strategy:
+      matrix:
+        php-version:
+          - "8.0"
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v2"
+
+      - name: "Install PHP"
+        uses: "shivammathur/setup-php@v2"
+        with:
+          coverage: "none"
+          php-version: "${{ matrix.php-version }}"
+          tools: "cs2pr"
+
+      - name: "Install dependencies with Composer"
+        uses: "ramsey/composer-install@v1"
+
+      - name: "Install php-cs-fixer"
+        run: composer require "friendsofphp/php-cs-fixer:^2.16"
+
+      - name: "Run php-cs-fixer"
+        run: "vendor/bin/php-cs-fixer fix --diff --dry-run -v"
