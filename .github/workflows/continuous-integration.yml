@@ -7,8 +7,8 @@ on:
       - "master"
 
 jobs:
-  phpunit:
-    name: "PHPUnit"
+  tests:
+    name: "Tests"
     runs-on: "ubuntu-20.04"
 
     strategy:
@@ -51,7 +51,7 @@ jobs:
     name: "Upload coverage to Codecov"
     runs-on: "ubuntu-20.04"
     needs:
-      - "phpunit"
+      - "tests"
 
     steps:
       - name: "Checkout"
