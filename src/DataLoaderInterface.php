@@ -16,7 +16,7 @@ interface DataLoaderInterface
     /**
      * Loads a key, returning a `Promise` for the value represented by that key.
      *
-     * @param string $key
+     * @param mixed $key
      *
      * @return mixed return a Promise
      */
