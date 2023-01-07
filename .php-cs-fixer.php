@@ -20,7 +20,7 @@ For the full copyright and license information, please view the LICENSE
 file that was distributed with this source code.
 EOF;
 
-return PhpCsFixer\Config::create()
+return (new PhpCsFixer\Config())
     ->setRules([
       '@PSR2' => true,
       'array_syntax' => ['syntax' => 'short'],
