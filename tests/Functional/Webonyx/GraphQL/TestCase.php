@@ -18,12 +18,13 @@ use GraphQL\Executor\Promise\PromiseAdapter;
 use GraphQL\GraphQL;
 use Overblog\DataLoader\DataLoader;
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 abstract class TestCase extends \PHPUnit\Framework\TestCase
 {
     private static $fixtures = null;
 
-    public function getFixtures()
+    public static function getFixtures()
     {
         if (null === self::$fixtures) {
             $fixturesFiles = self::listFiles(__DIR__.'/fixtures');
@@ -64,11 +65,11 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @dataProvider getFixtures
      * @param array  $expectedMetrics
      * @param string $query
      * @param array  $expectedResponse
      */
+    #[DataProvider('getFixtures')]
     public function testExecute(array $expectedMetrics, $query, array $expectedResponse)
     {
         $metrics = [
