@@ -95,7 +95,7 @@ jobs:
         uses: "ramsey/composer-install@v2"
 
       - name: "Install php-cs-fixer"
-        run: composer require "friendsofphp/php-cs-fixer:^2.16"
+        run: composer require "friendsofphp/php-cs-fixer:^3.23"
 
       - name: "Run php-cs-fixer"
         run: "vendor/bin/php-cs-fixer fix --diff --dry-run -v"
