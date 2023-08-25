@@ -11,10 +11,12 @@
 
 namespace Overblog\PromiseAdapter\Adapter;
 
+use GuzzleHttp\Promise\Create;
 use GuzzleHttp\Promise\FulfilledPromise;
 use GuzzleHttp\Promise\Promise;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Promise\RejectedPromise;
+use GuzzleHttp\Promise\Utils;
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
 /**
@@ -29,7 +31,7 @@ class GuzzleHttpPromiseAdapter implements PromiseAdapterInterface
      */
     public function create(&$resolve = null, &$reject = null, callable $canceller = null)
     {
-        $queue = \GuzzleHttp\Promise\queue();
+        $queue = Utils::queue();
         $promise = new Promise([$queue, 'run'], $canceller);
 
         $reject = [$promise, 'reject'];
@@ -45,7 +47,7 @@ class GuzzleHttpPromiseAdapter implements PromiseAdapterInterface
      */
     public function createFulfilled($promiseOrValue = null)
     {
-        $promise = \GuzzleHttp\Promise\promise_for($promiseOrValue);
+        $promise = Create::promiseFor($promiseOrValue);
 
         return $promise;
     }
@@ -57,7 +59,7 @@ class GuzzleHttpPromiseAdapter implements PromiseAdapterInterface
      */
     public function createRejected($reason)
     {
-        $promise = \GuzzleHttp\Promise\rejection_for($reason);
+        $promise = Create::rejectionFor($reason);
 
         return $promise;
     }
@@ -69,7 +71,7 @@ class GuzzleHttpPromiseAdapter implements PromiseAdapterInterface
      */
     public function createAll($promisesOrValues)
     {
-        $promise = empty($promisesOrValues) ? $this->createFulfilled($promisesOrValues) : \GuzzleHttp\Promise\all($promisesOrValues);
+        $promise = empty($promisesOrValues) ? $this->createFulfilled($promisesOrValues) : Utils::all($promisesOrValues);
 
         return $promise;
     }
@@ -107,7 +109,7 @@ class GuzzleHttpPromiseAdapter implements PromiseAdapterInterface
             }, function ($reason) use (&$exception) {
                 $exception = $reason;
             });
-            \GuzzleHttp\Promise\queue()->run();
+            Utils::queue()->run();
 
             if ($exception instanceof \Exception) {
                 if (!$unwrap) {
@@ -116,7 +118,7 @@ class GuzzleHttpPromiseAdapter implements PromiseAdapterInterface
                 throw $exception;
             }
         } else {
-            \GuzzleHttp\Promise\queue()->run();
+            Utils::queue()->run();
         }
 
         return $resolvedValue;
