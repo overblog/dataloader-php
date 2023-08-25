@@ -27,8 +27,7 @@
   },
   "require-dev": {
     "guzzlehttp/promises": "^1.5.0 || ^2.0.0",
-    "phpunit/php-code-coverage": "^9.2.27",
-    "phpunit/phpunit": "^9.6.11",
+    "phpunit/phpunit": "^10.3",
     "react/promise": "^2.8.0",
     "webonyx/graphql-php": "^14.0"
   },

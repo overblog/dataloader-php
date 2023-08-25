@@ -15,15 +15,16 @@ use Overblog\PromiseAdapter\Adapter\GuzzleHttpPromiseAdapter;
 use Overblog\PromiseAdapter\Adapter\ReactPromiseAdapter;
 use Overblog\PromiseAdapter\Adapter\WebonyxGraphQLSyncPromiseAdapter;
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 class AdapterTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * @dataProvider AdapterDataProvider
      * @param string $promiseClass
      * @param PromiseAdapterInterface $Adapter
      * @param string $context
      */
+    #[DataProvider('AdapterDataProvider')]
     public function testCreate(PromiseAdapterInterface $Adapter, $context, $promiseClass)
     {
         $promise = $Adapter->create($resolve, $reject);
@@ -34,10 +35,10 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
      * @param $message
      */
+    #[DataProvider('AdapterDataProvider')]
     public function testResolveCreatedPromise(PromiseAdapterInterface $Adapter, $message)
     {
         $promise = $Adapter->create($resolve, $reject);
@@ -49,10 +50,10 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
      * @param string $context
      */
+    #[DataProvider('AdapterDataProvider')]
     public function testRejectCreatedPromise(PromiseAdapterInterface $Adapter, $context)
     {
         $promise = $Adapter->create($resolve, $reject);
@@ -65,11 +66,11 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
      * @param string $context
      * @param string $promiseClass
      */
+    #[DataProvider('AdapterDataProvider')]
     public function testCreateAll(PromiseAdapterInterface $Adapter, $context, $promiseClass)
     {
         $values = ['A', 'B', 'C'];
@@ -82,11 +83,11 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
      * @param string $context
      * @param string $promiseClass
      */
+    #[DataProvider('AdapterDataProvider')]
     public function testCreateFulfilled(PromiseAdapterInterface $Adapter, $context, $promiseClass)
     {
         $value = 'resolved!';
@@ -98,11 +99,11 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
      * @param string $context
      * @param string $promiseClass
      */
+    #[DataProvider('AdapterDataProvider')]
     public function testCreatedRejected(PromiseAdapterInterface $Adapter, $context, $promiseClass)
     {
         $expectRejectionReason = new \Exception('Error!');
@@ -114,10 +115,10 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
      * @param string $context
      */
+    #[DataProvider('AdapterDataProvider')]
     public function testIsPromise(PromiseAdapterInterface $Adapter, $context)
     {
         $promise = $Adapter->create();
@@ -128,10 +129,10 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
      * @param string $context
      */
+    #[DataProvider('AdapterDataProvider')]
     public function testAwaitWithoutPromise(PromiseAdapterInterface $Adapter, $context)
     {
         $expected = 'expected value';
@@ -148,10 +149,9 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
-     *
      */
+    #[DataProvider('AdapterDataProvider')]
     public function testAwaitWithUnwrap(PromiseAdapterInterface $Adapter)
     {
         $this->expectException(\Exception::class);
@@ -164,9 +164,9 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
      */
+    #[DataProvider('AdapterDataProvider')]
     public function testAwaitWithInvalidPromise(PromiseAdapterInterface $Adapter)
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -176,9 +176,9 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
      */
+    #[DataProvider('AdapterDataProvider')]
     public function testCancel(PromiseAdapterInterface $Adapter)
     {
         $this->expectException(\Exception::class);
@@ -193,9 +193,9 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @dataProvider AdapterDataProvider
      * @param PromiseAdapterInterface $Adapter
      */
+    #[DataProvider('AdapterDataProvider')]
     public function testCancelInvalidPromise(PromiseAdapterInterface $Adapter)
     {
         $this->expectException(\Exception::class);
@@ -208,7 +208,7 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
         $Adapter->cancel(new \stdClass());
     }
 
-    public function AdapterDataProvider()
+    public static function AdapterDataProvider()
     {
         return [
             [new GuzzleHttpPromiseAdapter(), 'guzzle', 'GuzzleHttp\\Promise\\PromiseInterface'],
