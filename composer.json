@@ -30,7 +30,7 @@
     "phpunit/php-code-coverage": "^9.2.27",
     "phpunit/phpunit": "^9.6.11",
     "react/promise": "^2.8.0",
-    "webonyx/graphql-php": "^14.0"
+    "webonyx/graphql-php": "^15.0"
   },
   "suggest": {
     "guzzlehttp/promises": "To use with Guzzle promise",
