@@ -17,6 +17,7 @@ jobs:
         php-version:
           - "8.0"
           - "8.1"
+          - "8.2"
         dependencies:
           - "lowest"
           - "highest"
@@ -35,7 +36,7 @@ jobs:
           ini-values: "zend.assertions=1"
 
       - name: "Install dependencies with Composer"
-        uses: "ramsey/composer-install@v1"
+        uses: "ramsey/composer-install@v2"
         with:
           dependency-versions: "${{ matrix.dependencies }}"
 
@@ -77,7 +78,7 @@ jobs:
     strategy:
       matrix:
         php-version:
-          - "8.0"
+          - "8.2"
 
     steps:
       - name: "Checkout"
@@ -91,10 +92,10 @@ jobs:
           tools: "cs2pr"
 
       - name: "Install dependencies with Composer"
-        uses: "ramsey/composer-install@v1"
+        uses: "ramsey/composer-install@v2"
 
       - name: "Install php-cs-fixer"
-        run: composer require "friendsofphp/php-cs-fixer:^2.16"
+        run: composer require "friendsofphp/php-cs-fixer:^3.23"
 
       - name: "Run php-cs-fixer"
         run: "vendor/bin/php-cs-fixer fix --diff --dry-run -v"
