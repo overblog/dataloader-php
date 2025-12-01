@@ -10,7 +10,7 @@ data sources such as databases or web services via batching and caching.
 
 ## Requirements
 
-This library requires PHP >= 7.3 to work.
+This library requires PHP >= 8.1 to work.
 
 ## Getting Started
 
