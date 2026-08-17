@@ -542,6 +542,73 @@ abstract class DataLoadTestCase extends TestCase
     }
 
     /**
+     * @dataProvider provideSynchronousBatchThrowable
+     */
+    public function testPropagatesSynchronousBatchThrowableToAllLoadsAndAllowsRetry(\Throwable $throwable)
+    {
+        $attempt = 0;
+        list($loader, $loadCalls) = self::idLoader(null, function ($keys) use (&$attempt, $throwable) {
+            if (0 === $attempt++) {
+                throw $throwable;
+            }
+
+            return self::$promiseAdapter->createFulfilled($keys);
+        });
+
+        $promise1 = $loader->load(1);
+        $promise2 = $loader->load(2);
+
+        $rejectedReason1 = null;
+        $promise1->then(null, function ($reason) use (&$rejectedReason1) {
+            $rejectedReason1 = $reason;
+        });
+        $rejectedReason2 = null;
+        $promise2->then(null, function ($reason) use (&$rejectedReason2) {
+            $rejectedReason2 = $reason;
+        });
+
+        DataLoader::await();
+
+        $this->assertSame($throwable, $rejectedReason1);
+        $this->assertSame($throwable, $rejectedReason2);
+
+        $this->assertEquals(
+            [1, 2],
+            DataLoader::await(self::$promiseAdapter->createAll([$loader->load(1), $loader->load(2)]))
+        );
+        $this->assertEquals([[1, 2], [1, 2]], $loadCalls->getArrayCopy());
+    }
+
+    public function testDoesNotCacheSynchronousBatchFailureWhenBatchingIsDisabled()
+    {
+        $attempt = 0;
+        list($loader, $loadCalls) = self::idLoader(new Option(['batch' => false]), function ($keys) use (&$attempt) {
+            if (0 === $attempt++) {
+                throw new \Exception('Synchronous batch exception');
+            }
+
+            return self::$promiseAdapter->createFulfilled($keys);
+        });
+
+        $rejectedReason = null;
+        $loader->load(1)->then(null, function ($reason) use (&$rejectedReason) {
+            $rejectedReason = $reason;
+        });
+
+        $this->assertInstanceOf(\Exception::class, $rejectedReason);
+        $this->assertEquals(1, DataLoader::await($loader->load(1)));
+        $this->assertEquals([[1], [1]], $loadCalls->getArrayCopy());
+    }
+
+    public static function provideSynchronousBatchThrowable()
+    {
+        return [
+            'exception' => [new \Exception('Synchronous batch exception')],
+            'error' => [new \Error('Synchronous batch error')],
+        ];
+    }
+
+    /**
      * @group accepts-any-kind-of-key
      */
     public function testAcceptsObjectsAsKeys()

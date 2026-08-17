@@ -91,6 +91,11 @@ class DataLoader implements DataLoaderInterface
             'promise' => $promise,
         ];
 
+        // If caching, cache this promise before it may be dispatched.
+        if ($shouldCache) {
+            $this->promiseCache->set($cacheKey, $promise);
+        }
+
         // Determine if a dispatch of this queue should be scheduled.
         // A single dispatch should be scheduled per queue at the time when the
         // queue changes from "empty" to "full".
@@ -99,10 +104,6 @@ class DataLoader implements DataLoaderInterface
                 // Otherwise dispatch the (queue of one) immediately.
                 $this->dispatchQueue();
             }
-        }
-        // If caching, cache this promise.
-        if ($shouldCache) {
-            $this->promiseCache->set($cacheKey, $promise);
         }
 
         return $promise;
@@ -331,7 +332,13 @@ class DataLoader implements DataLoaderInterface
 
         // Call the provided batchLoadFn for this loader with the loader queue's keys.
         $batchLoadFn = $this->batchLoadFn;
-        $batchPromise = $batchLoadFn($keys);
+        try {
+            $batchPromise = $batchLoadFn($keys);
+        } catch (\Throwable $error) {
+            $this->failedDispatch($queue, $error);
+
+            return;
+        }
 
         // Assert the expected response from batchLoadFn
         if (!$batchPromise || !is_callable([$batchPromise, 'then'])) {
