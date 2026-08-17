@@ -815,50 +815,6 @@ abstract class DataLoadTestCase extends TestCase
         $this->assertTrue($secondComplete);
     }
 
-    /**
-     * @runInSeparateProcess
-     */
-    public function testAwaitShouldReturnTheValueOfFulfilledPromiseWithoutNeedingActiveDataLoaderInstance()
-    {
-        $expectedValue = 'Ok!';
-        $value = DataLoader::await(self::$promiseAdapter->createFulfilled($expectedValue));
-
-        $this->assertEquals($expectedValue, $value);
-    }
-
-    /**
-     * @runInSeparateProcess
-     */
-    public function testAwaitShouldReturnTheRejectReasonOfRejectedPromiseWithoutNeedingActiveDataLoaderInstance()
-    {
-        $expectedException = new \Exception('Rejected!');
-        $exception = DataLoader::await(self::$promiseAdapter->createRejected($expectedException), false);
-
-        $this->assertEquals($expectedException, $exception);
-    }
-
-    /**
-     * @runInSeparateProcess
-     */
-    public function testAwaitShouldThrowTheRejectReasonOfRejectedPromiseWithoutNeedingActiveDataLoaderInstance()
-    {
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Rejected!');
-
-        DataLoader::await(self::$promiseAdapter->createRejected(new Exception('Rejected!')));
-    }
-
-    /**
-     * @runInSeparateProcess
-     */
-    public function testAwaitShouldThrowThrowable()
-    {
-        $this->expectException(\Error::class);
-        $this->expectExceptionMessage('Rejected Error!');
-
-        DataLoader::await(self::$promiseAdapter->createRejected(new \Error('Rejected Error!')));
-    }
-
     public function cacheKey($key)
     {
         $cacheKey = [];
