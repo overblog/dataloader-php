@@ -11,7 +11,7 @@
 
 namespace Overblog\DataLoader\Test;
 
-use Overblog\PromiseAdapter\Adapter\ReactPromiseAdapter;
+use Overblog\DataLoader\DataLoader;
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
 abstract class TestCase extends \PHPUnit\Framework\TestCase
@@ -23,6 +23,16 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
 
     public function setUp(): void
     {
-        self::$promiseAdapter = new ReactPromiseAdapter();
+        self::$promiseAdapter = $this->createPromiseAdapter();
     }
+
+    protected function tearDown(): void
+    {
+        $instances = new \ReflectionProperty(DataLoader::class, 'instances');
+        $instances->setValue([]);
+
+        parent::tearDown();
+    }
+
+    abstract protected function createPromiseAdapter(): PromiseAdapterInterface;
 }
