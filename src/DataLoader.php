@@ -38,20 +38,22 @@ class DataLoader implements DataLoaderInterface
     /**
      * @var self[]
      */
-    private static $instances = [];
+    private static array $activeInstances = [];
 
     /**
      * @var PromiseAdapterInterface
      */
     private $promiseAdapter;
 
+    private static PromiseAdapterInterface|null $staticPromiseAdapter = null;
+
     public function __construct(callable $batchLoadFn, PromiseAdapterInterface $promiseFactory, ?Option $options = null)
     {
         $this->batchLoadFn = $batchLoadFn;
         $this->promiseAdapter = $promiseFactory;
+        self::$staticPromiseAdapter ??= $promiseFactory;
         $this->options = $options ?: new Option();
         $this->promiseCache = $this->options->getCacheMap();
-        self::$instances[] = $this;
     }
 
     /**
@@ -77,7 +79,7 @@ class DataLoader implements DataLoaderInterface
         $promise = $this->getPromiseAdapter()->create(
             $resolve,
             $reject,
-            function () {
+            static function () {
                 // Cancel/abort any running operations like network connections, streams etc.
 
                 throw new \RuntimeException('DataLoader destroyed before promise complete.');
@@ -90,6 +92,8 @@ class DataLoader implements DataLoaderInterface
             'reject' => $reject,
             'promise' => $promise,
         ];
+
+        self::$activeInstances[spl_object_id($this)] = $this;
 
         // Determine if a dispatch of this queue should be scheduled.
         // A single dispatch should be scheduled per queue at the time when the
@@ -179,12 +183,6 @@ class DataLoader implements DataLoaderInterface
             }
             $this->await();
         }
-        foreach (self::$instances as $i => $instance) {
-            if ($this !== $instance) {
-                continue;
-            }
-            unset(self::$instances[$i]);
-        }
     }
 
     protected function needProcess()
@@ -192,12 +190,14 @@ class DataLoader implements DataLoaderInterface
         return count($this->queue) > 0;
     }
 
-    protected function process()
+    protected function process(): bool
     {
         if ($this->needProcess()) {
             $this->getPromiseAdapter()->await();
             $this->dispatchQueue();
+            return true;
         }
+        return false;
     }
 
     protected function getPromiseAdapter()
@@ -246,26 +246,20 @@ class DataLoader implements DataLoaderInterface
             }
         }
 
-        if (empty(self::$instances)) {
+        if (!self::$staticPromiseAdapter) {
             throw new \RuntimeException('Found no active DataLoader instance.');
         }
 
-        return self::$instances[0]->getPromiseAdapter()->await($promise, $unwrap);
+        return self::$staticPromiseAdapter->await($promise, $unwrap);
     }
 
     private static function awaitInstances()
     {
         do {
             $wait = false;
-            $dataLoaders = self::$instances;
 
-            foreach ($dataLoaders as $dataLoader) {
-                if (!$dataLoader || !$dataLoader->needProcess()) {
-                    $wait |= false;
-                    continue;
-                }
-                $wait = true;
-                $dataLoader->process();
+            foreach (self::$activeInstances as $dataLoader) {
+                $wait |= $dataLoader->process();
             }
         } while ($wait);
     }
@@ -305,6 +299,7 @@ class DataLoader implements DataLoaderInterface
         // Take the current loader queue, replacing it with an empty queue.
         $queue = $this->queue;
         $this->queue = [];
+        unset(self::$activeInstances[spl_object_id($this)]);
         $queueLength = count($queue);
         // If a maxBatchSize was provided and the queue is longer, then segment the
         // queue into multiple batches, otherwise treat the queue as a single batch.
