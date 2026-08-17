@@ -167,6 +167,30 @@ class AdapterTest extends \PHPUnit\Framework\TestCase
      * @param PromiseAdapterInterface $Adapter
      */
     #[DataProvider('AdapterDataProvider')]
+    public function testAwaitReturnsErrorRejectionWithoutUnwrap(PromiseAdapterInterface $Adapter)
+    {
+        $expected = new \Error('error!');
+        $promise = $Adapter->createRejected($expected);
+
+        $this->assertSame($expected, $Adapter->await($promise, false));
+    }
+
+    /**
+     * @param PromiseAdapterInterface $Adapter
+     */
+    #[DataProvider('AdapterDataProvider')]
+    public function testAwaitThrowsErrorRejectionWithUnwrap(PromiseAdapterInterface $Adapter)
+    {
+        $this->expectException(\Error::class);
+        $this->expectExceptionMessage('error!');
+
+        $Adapter->await($Adapter->createRejected(new \Error('error!')), true);
+    }
+
+    /**
+     * @param PromiseAdapterInterface $Adapter
+     */
+    #[DataProvider('AdapterDataProvider')]
     public function testAwaitWithInvalidPromise(PromiseAdapterInterface $Adapter)
     {
         $this->expectException(\InvalidArgumentException::class);
