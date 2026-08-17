@@ -9,7 +9,7 @@ on:
 jobs:
   tests:
     name: "Tests"
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-24.04"
 
     strategy:
       fail-fast: false
@@ -55,7 +55,7 @@ jobs:
 
   upload_coverage:
     name: "Upload coverage to Codecov"
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-24.04"
     needs:
       - "tests"
 
@@ -77,7 +77,7 @@ jobs:
 
   coding-standards:
     name: "Coding Standards"
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-24.04"
 
     strategy:
       matrix:
