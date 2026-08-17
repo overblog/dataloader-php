@@ -54,6 +54,37 @@ abstract class DataLoadTestCase extends TestCase
     /**
      * @group primary-api
      */
+    public function testSupportsLoadingMultipleKeysFromAnArrayIterator()
+    {
+        list($identityLoader, $loadCalls) = self::idLoader();
+
+        $promiseAll = $identityLoader->loadMany(new \ArrayIterator([2 => 'A', 0 => 'B', 1 => 'C']));
+
+        $this->assertEquals(['A', 'B', 'C'], DataLoader::await($promiseAll));
+        $this->assertEquals([['A', 'B', 'C']], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group primary-api
+     */
+    public function testSupportsLoadingEveryKeyFromAGenerator()
+    {
+        list($identityLoader, $loadCalls) = self::idLoader();
+        $keys = (function () {
+            yield 1 => 'A';
+            yield 1 => 'B';
+            yield 0 => 'C';
+        })();
+
+        $promiseAll = $identityLoader->loadMany($keys);
+
+        $this->assertEquals(['A', 'B', 'C'], DataLoader::await($promiseAll));
+        $this->assertEquals([['A', 'B', 'C']], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group primary-api
+     */
     public function testBatchesMultipleRequests()
     {
         /**

@@ -116,6 +116,9 @@ class DataLoader implements DataLoaderInterface
         if (!is_array($keys) && !$keys instanceof \Traversable) {
             throw new \InvalidArgumentException(sprintf('The "%s" method must be called with Array<key> but got: %s.', __METHOD__, gettype($keys)));
         }
+        if ($keys instanceof \Traversable) {
+            $keys = iterator_to_array($keys, false);
+        }
         return $this->getPromiseAdapter()->createAll(array_map(
             function ($key) {
                 return $this->load($key);
