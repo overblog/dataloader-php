@@ -14,7 +14,7 @@ namespace Overblog\DataLoader\Test;
 use Overblog\PromiseAdapter\Adapter\ReactPromiseAdapter;
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
-class ReactDataLoadTest extends DataLoadTestCase
+final class ReactDataLoadTest extends DataLoadTestCase
 {
     protected function createPromiseAdapter(): PromiseAdapterInterface
     {

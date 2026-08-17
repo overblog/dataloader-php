@@ -14,7 +14,7 @@ namespace Overblog\DataLoader\Test;
 use Overblog\PromiseAdapter\Adapter\WebonyxGraphQLSyncPromiseAdapter;
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
-class WebonyxDataLoadTest extends DataLoadTestCase
+final class WebonyxDataLoadTest extends DataLoadTestCase
 {
     protected function createPromiseAdapter(): PromiseAdapterInterface
     {

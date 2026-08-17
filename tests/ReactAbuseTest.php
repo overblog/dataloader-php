@@ -14,7 +14,7 @@ namespace Overblog\DataLoader\Test;
 use Overblog\PromiseAdapter\Adapter\ReactPromiseAdapter;
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
-class ReactAbuseTest extends AbuseTestCase
+final class ReactAbuseTest extends AbuseTestCase
 {
     protected function createPromiseAdapter(): PromiseAdapterInterface
     {
