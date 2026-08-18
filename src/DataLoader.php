@@ -157,9 +157,9 @@ class DataLoader implements DataLoaderInterface
 
         // Only add the key if it does not already exist.
         if (!$this->promiseCache->has($cacheKey)) {
-            // Cache a rejected promise if the value is an Error, in order to match
+            // Cache a rejected promise if the value is a Throwable, in order to match
             // the behavior of load(key).
-            $promise = $value instanceof \Exception ? $this->getPromiseAdapter()->createRejected($value) : $this->getPromiseAdapter()->createFulfilled($value);
+            $promise = $value instanceof \Throwable ? $this->getPromiseAdapter()->createRejected($value) : $this->getPromiseAdapter()->createFulfilled($value);
 
             $this->promiseCache->set($cacheKey, $promise);
         }
@@ -173,7 +173,7 @@ class DataLoader implements DataLoaderInterface
             foreach ($this->queue as $data) {
                 try {
                     $this->getPromiseAdapter()->cancel($data['promise']);
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     // no need to do nothing if cancel failed
                 }
             }
@@ -235,7 +235,7 @@ class DataLoader implements DataLoaderInterface
             //Promise is completed?
             if ($isPromiseCompleted) {
                 // rejected ?
-                if ($rejectedReason instanceof \Exception || (interface_exists('\Throwable') && $rejectedReason instanceof \Throwable)) {
+                if ($rejectedReason instanceof \Throwable) {
                     if (!$unwrap) {
                         return $rejectedReason;
                     }
@@ -364,7 +364,7 @@ class DataLoader implements DataLoaderInterface
                 // loaded queue.
                 foreach ($queue as $index => $data) {
                     $value = $values[$index];
-                    if ($value instanceof \Exception) {
+                    if ($value instanceof \Throwable) {
                         $data['reject']($value);
                     } else {
                         $data['resolve']($value);
@@ -380,9 +380,9 @@ class DataLoader implements DataLoaderInterface
      * Do not cache individual loads if the entire batch dispatch fails,
      * but still reject each request so they do not hang.
      * @param array      $queue
-     * @param \Exception $error
+     * @param \Throwable $error
      */
-    private function failedDispatch($queue, \Exception $error)
+    private function failedDispatch($queue, \Throwable $error)
     {
         foreach ($queue as $index => $data) {
             $this->clear($data['key']);

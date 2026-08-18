@@ -127,10 +127,10 @@ class WebonyxGraphQLSyncPromiseAdapter implements PromiseAdapterInterface
 
         try {
             $resolvedValue = $promiseAdapter->wait($promise);
-        } catch (\Exception $reason) {
+        } catch (\Throwable $reason) {
             $exception = $reason;
         }
-        if ($exception instanceof \Exception) {
+        if ($exception instanceof \Throwable) {
             if (!$unwrap) {
                 return $exception;
             }
@@ -159,7 +159,7 @@ class WebonyxGraphQLSyncPromiseAdapter implements PromiseAdapterInterface
         }
         try {
             $canceller([$adoptedPromise, 'resolve'], [$adoptedPromise, 'reject']);
-        } catch (\Exception $reason) {
+        } catch (\Throwable $reason) {
             $adoptedPromise->reject($reason);
         }
     }

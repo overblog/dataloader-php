@@ -68,7 +68,7 @@ interface DataLoaderInterface
      * @param $promise
      * @param bool $unwrap controls whether or not the value of the promise is returned for a fulfilled promise or if an exception is thrown if the promise is rejected
      * @return mixed
-     * @throws \Exception
+     * @throws \Throwable
      */
     public static function await($promise = null, $unwrap = true);
 }

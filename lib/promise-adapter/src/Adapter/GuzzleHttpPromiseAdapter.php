@@ -111,7 +111,7 @@ class GuzzleHttpPromiseAdapter implements PromiseAdapterInterface
             });
             Utils::queue()->run();
 
-            if ($exception instanceof \Exception) {
+            if ($exception instanceof \Throwable) {
                 if (!$unwrap) {
                     return $exception;
                 }

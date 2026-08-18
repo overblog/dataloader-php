@@ -373,6 +373,47 @@ abstract class DataLoadTestCase extends TestCase
     /**
      * @group represents-errors
      */
+    public function testRejectsErrorUsedToPrimeTheCache()
+    {
+        list($identityLoader, $loadCalls) = self::idLoader();
+        $expected = new \Error('Error: 1');
+
+        $identityLoader->prime(1, $expected);
+
+        $caught = null;
+        try {
+            DataLoader::await($identityLoader->load(1));
+        } catch (\Error $error) {
+            $caught = $error;
+        }
+
+        $this->assertSame($expected, $caught);
+        $this->assertEquals([], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group represents-errors
+     */
+    public function testRejectsErrorReturnedAsAnIndividualBatchValue()
+    {
+        $expected = new \Error('Error: 1');
+        list($loader) = self::idLoader(null, function () use ($expected) {
+            return self::$promiseAdapter->createFulfilled([$expected]);
+        });
+
+        $caught = null;
+        try {
+            DataLoader::await($loader->load(1));
+        } catch (\Error $error) {
+            $caught = $error;
+        }
+
+        $this->assertSame($expected, $caught);
+    }
+
+    /**
+     * @group represents-errors
+     */
     public function testCanClearValuesFromCacheAfterErrors()
     {
         /**
@@ -448,6 +489,24 @@ abstract class DataLoadTestCase extends TestCase
         $this->assertInstanceOf(\Exception::class, $caughtError2);
         $this->assertEquals($caughtError2->getMessage(), 'I am a terrible loader');
 
+        $this->assertEquals([[1, 2]], $loadCalls->getArrayCopy());
+    }
+
+    /**
+     * @group represents-errors
+     */
+    public function testPropagatesErrorFromFailedBatchToAllLoads()
+    {
+        $expected = new \Error('I am a terrible loader');
+        list($failLoader, $loadCalls) = self::idLoader(null, function () use ($expected) {
+            return self::$promiseAdapter->createRejected($expected);
+        });
+
+        $promise1 = $failLoader->load(1);
+        $promise2 = $failLoader->load(2);
+
+        $this->assertSame($expected, DataLoader::await($promise1, false));
+        $this->assertSame($expected, DataLoader::await($promise2, false));
         $this->assertEquals([[1, 2]], $loadCalls->getArrayCopy());
     }
 
