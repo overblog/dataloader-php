@@ -11,6 +11,9 @@
 
 namespace Overblog\DataLoader;
 
+/**
+ * @template TPromise
+ */
 interface DataLoaderInterface
 {
     /**
@@ -18,7 +21,7 @@ interface DataLoaderInterface
      *
      * @param mixed $key
      *
-     * @return mixed return a Promise
+     * @return TPromise a Promise
      */
     public function load($key);
 
@@ -35,7 +38,7 @@ interface DataLoaderInterface
      *     ]);
      * @param array $keys
      *
-     * @return mixed return a Promise
+     * @return TPromise a Promise
      */
     public function loadMany($keys);
 

@@ -13,6 +13,11 @@ namespace Overblog\DataLoader;
 
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
 
+/**
+ * @template TPromise
+ *
+ * @implements DataLoaderInterface<TPromise>
+ */
 class DataLoader implements DataLoaderInterface
 {
     /**
@@ -51,10 +56,13 @@ class DataLoader implements DataLoaderInterface
     private static $promiseAdapters;
 
     /**
-     * @var PromiseAdapterInterface
+     * @var PromiseAdapterInterface<TPromise>
      */
     private $promiseAdapter;
 
+    /**
+     * @param PromiseAdapterInterface<TPromise> $promiseFactory
+     */
     public function __construct(callable $batchLoadFn, PromiseAdapterInterface $promiseFactory, ?Option $options = null)
     {
         $this->batchLoadFn = $batchLoadFn;
@@ -65,9 +73,7 @@ class DataLoader implements DataLoaderInterface
         self::$instances[$this] = null;
     }
 
-    /**
-     * {@inheritdoc}
-     */
+    /** @return TPromise */
     public function load($key)
     {
         $this->checkKey($key, __METHOD__);
@@ -122,9 +128,7 @@ class DataLoader implements DataLoaderInterface
         return $promise;
     }
 
-    /**
-     * {@inheritdoc}
-     */
+    /** @return TPromise */
     public function loadMany($keys)
     {
         if (!is_array($keys) && !$keys instanceof \Traversable) {
@@ -219,6 +223,7 @@ class DataLoader implements DataLoaderInterface
         }
     }
 
+    /** @return PromiseAdapterInterface<TPromise> */
     protected function getPromiseAdapter()
     {
         return $this->promiseAdapter;
