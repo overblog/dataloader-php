@@ -214,6 +214,7 @@ class DataLoader implements DataLoaderInterface
         if ($this->needProcess()) {
             $this->getPromiseAdapter()->await();
             $this->dispatchQueue();
+            $this->getPromiseAdapter()->await();
         }
     }
 

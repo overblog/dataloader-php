@@ -915,6 +915,20 @@ abstract class DataLoadTestCase extends TestCase
         $this->assertNull($loaderReference->get());
     }
 
+    public function testPromisesResolvedWithNoExternalReferences()
+    {
+        $resolvedValue = null;
+        [$loader] = self::idLoader();
+        $loader->load(1)->then(function ($value) use (&$resolvedValue) {
+            $resolvedValue = $value;
+        });
+        $loader = null;
+
+        DataLoader::await();
+
+        $this->assertSame(1, $resolvedValue, 'Promise has not been resolved');
+    }
+
     public function testCallingAwaitFunctionWhenNoInstanceOfDataLoaderShouldNotThrowError()
     {
         self::assertNull(DataLoader::await());
