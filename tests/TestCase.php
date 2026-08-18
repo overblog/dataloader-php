@@ -29,7 +29,13 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
     protected function tearDown(): void
     {
         $instances = new \ReflectionProperty(DataLoader::class, 'instances');
-        $instances->setValue([]);
+        $instances->setValue(null);
+
+        $activeInstances = new \ReflectionProperty(DataLoader::class, 'activeInstances');
+        $activeInstances->setValue([]);
+
+        $promiseAdapters = new \ReflectionProperty(DataLoader::class, 'promiseAdapters');
+        $promiseAdapters->setValue(null);
 
         parent::tearDown();
     }

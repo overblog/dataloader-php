@@ -865,16 +865,82 @@ abstract class DataLoadTestCase extends TestCase
         $loader->load('A1')->then(null, function ($reason) use (&$exception) {
             $exception = $reason;
         });
+
+        $unrelatedLoadCalls = new \ArrayObject();
+        $unrelatedLoader = new DataLoader(function ($keys) use ($unrelatedLoadCalls) {
+            $unrelatedLoadCalls[] = $keys;
+
+            return self::$promiseAdapter->createFulfilled($keys);
+        }, self::$promiseAdapter);
+        $unrelatedPromise = $unrelatedLoader->load('B1');
+
         $loader->__destruct();
         unset($loader);
 
         $this->assertInstanceOf(\RuntimeException::class, $exception);
         $this->assertEquals($exception->getMessage(), 'DataLoader destroyed before promise complete.');
+        $this->assertSame([], $unrelatedLoadCalls->getArrayCopy());
+        $this->assertSame('B1', DataLoader::await($unrelatedPromise));
+    }
+
+    public function testDataLoaderCanBeGarbageCollectedAfterLosingItsLastExternalReference()
+    {
+        $loader = new DataLoader(function ($keys) {
+            return self::$promiseAdapter->createFulfilled($keys);
+        }, self::$promiseAdapter);
+        $loaderReference = \WeakReference::create($loader);
+
+        unset($loader);
+        gc_collect_cycles();
+
+        $this->assertNull($loaderReference->get());
+    }
+
+    public function testDataLoaderIsRetainedWhileWorkIsPendingAndCollectedAfterDispatch()
+    {
+        $loader = new DataLoader(function ($keys) {
+            return self::$promiseAdapter->createFulfilled($keys);
+        }, self::$promiseAdapter);
+        $loaderReference = \WeakReference::create($loader);
+        $promise = $loader->load('A');
+
+        unset($loader);
+        gc_collect_cycles();
+
+        $this->assertNotNull($loaderReference->get());
+        $this->assertSame('A', DataLoader::await($promise));
+
+        gc_collect_cycles();
+
+        $this->assertNull($loaderReference->get());
+    }
+
+    public function testPromisesResolvedWithNoExternalReferences()
+    {
+        $resolvedValue = null;
+        [$loader] = self::idLoader();
+        $loader->load(1)->then(function ($value) use (&$resolvedValue) {
+            $resolvedValue = $value;
+        });
+        $loader = null;
+
+        DataLoader::await();
+
+        $this->assertSame(1, $resolvedValue, 'Promise has not been resolved');
     }
 
     public function testCallingAwaitFunctionWhenNoInstanceOfDataLoaderShouldNotThrowError()
     {
         self::assertNull(DataLoader::await());
+    }
+
+    public function testAwaitSupportsAnInlineTemporaryDataLoader()
+    {
+        $value = DataLoader::await((new DataLoader(function ($keys) {
+            return self::$promiseAdapter->createFulfilled($keys);
+        }, self::$promiseAdapter))->load(1));
+
+        $this->assertSame(1, $value);
     }
 
     public function testAwaitAlsoAwaitsNewlyCreatedDataloaders()
