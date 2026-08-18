@@ -12,22 +12,18 @@
 namespace Overblog\PromiseAdapter\Adapter;
 
 use Overblog\PromiseAdapter\PromiseAdapterInterface;
-use React\Promise\CancellablePromiseInterface;
 use React\Promise\Deferred;
-use React\Promise\FulfilledPromise;
-use React\Promise\Promise;
 use React\Promise\PromiseInterface;
-use React\Promise\RejectedPromise;
 
 /**
- * @implements PromiseAdapterInterface<Promise>
+ * @implements PromiseAdapterInterface<PromiseInterface>
  */
 class ReactPromiseAdapter implements PromiseAdapterInterface
 {
     /**
      * {@inheritdoc}
      *
-     * @return Promise
+     * @return PromiseInterface
      */
     public function create(&$resolve = null, &$reject = null, ?callable $canceller = null)
     {
@@ -42,7 +38,7 @@ class ReactPromiseAdapter implements PromiseAdapterInterface
     /**
      * {@inheritdoc}
      *
-     * @return FulfilledPromise a full filed Promise
+     * @return PromiseInterface a fulfilled promise
      */
     public function createFulfilled($promiseOrValue = null)
     {
@@ -52,7 +48,7 @@ class ReactPromiseAdapter implements PromiseAdapterInterface
     /**
      * {@inheritdoc}
      *
-     * @return RejectedPromise a rejected promise
+     * @return PromiseInterface a rejected promise
      */
     public function createRejected($reason)
     {
@@ -62,7 +58,7 @@ class ReactPromiseAdapter implements PromiseAdapterInterface
     /**
      * {@inheritdoc}
      *
-     * @return Promise
+     * @return PromiseInterface
      */
     public function createAll($promisesOrValues)
     {
@@ -118,11 +114,11 @@ class ReactPromiseAdapter implements PromiseAdapterInterface
     /**
      * Cancel a promise
      *
-     * @param CancellablePromiseInterface $promise
+     * @param PromiseInterface $promise
      */
     public function cancel($promise)
     {
-        if (!$promise instanceof CancellablePromiseInterface) {
+        if (!$promise instanceof PromiseInterface || !is_callable([$promise, 'cancel'])) {
             throw new \InvalidArgumentException(sprintf('The "%s" method must be called with a compatible Promise.', __METHOD__));
         }
         $promise->cancel();
