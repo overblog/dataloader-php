@@ -36,9 +36,19 @@ class DataLoader implements DataLoaderInterface
     private $queue = [];
 
     /**
+     * @var \WeakMap<self, null>|null
+     */
+    private static $instances;
+
+    /**
      * @var self[]
      */
-    private static $instances = [];
+    private static $activeInstances = [];
+
+    /**
+     * @var \WeakMap<object, PromiseAdapterInterface>|null
+     */
+    private static $promiseAdapters;
 
     /**
      * @var PromiseAdapterInterface
@@ -51,7 +61,8 @@ class DataLoader implements DataLoaderInterface
         $this->promiseAdapter = $promiseFactory;
         $this->options = $options ?: new Option();
         $this->promiseCache = $this->options->getCacheMap();
-        self::$instances[] = $this;
+        self::$instances ??= new \WeakMap();
+        self::$instances[$this] = null;
     }
 
     /**
@@ -69,7 +80,7 @@ class DataLoader implements DataLoaderInterface
         if ($shouldCache) {
             $cachedPromise = $this->promiseCache->get($cacheKey);
             if ($cachedPromise) {
-                return $cachedPromise;
+                return $this->registerCachedPromiseAdapter($cachedPromise);
             }
         }
 
@@ -77,12 +88,13 @@ class DataLoader implements DataLoaderInterface
         $promise = $this->getPromiseAdapter()->create(
             $resolve,
             $reject,
-            function () {
+            static function () {
                 // Cancel/abort any running operations like network connections, streams etc.
 
                 throw new \RuntimeException('DataLoader destroyed before promise complete.');
             }
         );
+        $this->registerPromiseAdapter($promise);
 
         $this->queue[] = [
             'key' => $key,
@@ -90,6 +102,7 @@ class DataLoader implements DataLoaderInterface
             'reject' => $reject,
             'promise' => $promise,
         ];
+        self::$activeInstances[spl_object_id($this)] = $this;
 
         // Determine if a dispatch of this queue should be scheduled.
         // A single dispatch should be scheduled per queue at the time when the
@@ -119,12 +132,12 @@ class DataLoader implements DataLoaderInterface
         if ($keys instanceof \Traversable) {
             $keys = iterator_to_array($keys, false);
         }
-        return $this->getPromiseAdapter()->createAll(array_map(
+        return $this->registerPromiseAdapter($this->getPromiseAdapter()->createAll(array_map(
             function ($key) {
                 return $this->load($key);
             },
             $keys
-        ));
+        )));
     }
 
     /**
@@ -163,6 +176,7 @@ class DataLoader implements DataLoaderInterface
             // Cache a rejected promise if the value is a Throwable, in order to match
             // the behavior of load(key).
             $promise = $value instanceof \Throwable ? $this->getPromiseAdapter()->createRejected($value) : $this->getPromiseAdapter()->createFulfilled($value);
+            $this->registerPromiseAdapter($promise);
 
             $this->promiseCache->set($cacheKey, $promise);
         }
@@ -172,21 +186,21 @@ class DataLoader implements DataLoaderInterface
 
     public function __destruct()
     {
+        unset(self::$activeInstances[spl_object_id($this)]);
+
         if ($this->needProcess()) {
-            foreach ($this->queue as $data) {
+            $queue = $this->queue;
+            $this->queue = [];
+
+            foreach ($queue as $data) {
                 try {
                     $this->getPromiseAdapter()->cancel($data['promise']);
                 } catch (\Throwable $e) {
                     // no need to do nothing if cancel failed
                 }
             }
-            $this->await();
-        }
-        foreach (self::$instances as $i => $instance) {
-            if ($this !== $instance) {
-                continue;
-            }
-            unset(self::$instances[$i]);
+
+            $this->getPromiseAdapter()->await();
         }
     }
 
@@ -206,6 +220,31 @@ class DataLoader implements DataLoaderInterface
     protected function getPromiseAdapter()
     {
         return $this->promiseAdapter;
+    }
+
+    private function registerPromiseAdapter($promise)
+    {
+        if (is_object($promise)) {
+            self::$promiseAdapters ??= new \WeakMap();
+            self::$promiseAdapters[$promise] = $this->getPromiseAdapter();
+        }
+
+        return $promise;
+    }
+
+    private function registerCachedPromiseAdapter($promise)
+    {
+        if (!is_object($promise) || (null !== self::$promiseAdapters && isset(self::$promiseAdapters[$promise]))) {
+            return $promise;
+        }
+
+        $promiseAdapter = $this->getPromiseAdapter();
+        if ($promiseAdapter->isPromise($promise, true)) {
+            self::$promiseAdapters ??= new \WeakMap();
+            self::$promiseAdapters[$promise] = $promiseAdapter;
+        }
+
+        return $promise;
     }
 
     /**
@@ -247,23 +286,45 @@ class DataLoader implements DataLoaderInterface
 
                 return $resolvedValue;
             }
+        } else {
+            throw new \InvalidArgumentException(sprintf('The "%s" method must be called with a Promise ("then" method).', __METHOD__));
         }
 
-        if (empty(self::$instances)) {
+        if (null !== self::$promiseAdapters && isset(self::$promiseAdapters[$promise])) {
+            return self::$promiseAdapters[$promise]->await($promise, $unwrap);
+        }
+
+        $fallbackPromiseAdapter = null;
+        if (null !== self::$instances) {
+            foreach (self::$instances as $dataLoader => $unused) {
+                $promiseAdapter = $dataLoader->getPromiseAdapter();
+                $fallbackPromiseAdapter = $fallbackPromiseAdapter ?: $promiseAdapter;
+
+                if ($promiseAdapter->isPromise($promise, true)) {
+                    return $promiseAdapter->await($promise, $unwrap);
+                }
+            }
+        }
+
+        if (null === $fallbackPromiseAdapter) {
             throw new \RuntimeException('Found no active DataLoader instance.');
         }
 
-        return self::$instances[0]->getPromiseAdapter()->await($promise, $unwrap);
+        return $fallbackPromiseAdapter->await($promise, $unwrap);
     }
 
     private static function awaitInstances()
     {
+        if (empty(self::$activeInstances)) {
+            return;
+        }
+
         do {
             $wait = false;
-            $dataLoaders = self::$instances;
+            $dataLoaders = self::$activeInstances;
 
             foreach ($dataLoaders as $dataLoader) {
-                if (!$dataLoader || !$dataLoader->needProcess()) {
+                if (!$dataLoader->needProcess()) {
                     $wait |= false;
                     continue;
                 }
@@ -305,6 +366,8 @@ class DataLoader implements DataLoaderInterface
      */
     private function dispatchQueue()
     {
+        unset(self::$activeInstances[spl_object_id($this)]);
+
         // Take the current loader queue, replacing it with an empty queue.
         $queue = $this->queue;
         $this->queue = [];
