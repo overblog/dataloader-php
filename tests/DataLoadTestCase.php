@@ -542,6 +542,57 @@ abstract class DataLoadTestCase extends TestCase
     }
 
     /**
+     * @dataProvider provideSynchronousBatchThrowable
+     */
+    public function testPropagatesSynchronousBatchThrowableToAllLoadsAndAllowsRetry(\Throwable $throwable)
+    {
+        $attempt = 0;
+        list($loader, $loadCalls) = self::idLoader(null, function ($keys) use (&$attempt, $throwable) {
+            if (0 === $attempt++) {
+                throw $throwable;
+            }
+
+            return self::$promiseAdapter->createFulfilled($keys);
+        });
+
+        $promise1 = $loader->load(1);
+        $promise2 = $loader->load(2);
+
+        $this->assertSame($throwable, DataLoader::await($promise1, false));
+        $this->assertSame($throwable, DataLoader::await($promise2, false));
+
+        $this->assertEquals(
+            [1, 2],
+            DataLoader::await(self::$promiseAdapter->createAll([$loader->load(1), $loader->load(2)]))
+        );
+        $this->assertEquals([[1, 2], [1, 2]], $loadCalls->getArrayCopy());
+    }
+
+    public function testDoesNotCacheSynchronousBatchFailureWhenBatchingIsDisabled()
+    {
+        $attempt = 0;
+        list($loader, $loadCalls) = self::idLoader(new Option(['batch' => false]), function ($keys) use (&$attempt) {
+            if (0 === $attempt++) {
+                throw new \Exception('Synchronous batch exception');
+            }
+
+            return self::$promiseAdapter->createFulfilled($keys);
+        });
+
+        $this->assertInstanceOf(\Exception::class, DataLoader::await($loader->load(1), false));
+        $this->assertEquals(1, DataLoader::await($loader->load(1)));
+        $this->assertEquals([[1], [1]], $loadCalls->getArrayCopy());
+    }
+
+    public static function provideSynchronousBatchThrowable()
+    {
+        return [
+            'exception' => [new \Exception('Synchronous batch exception')],
+            'error' => [new \Error('Synchronous batch error')],
+        ];
+    }
+
+    /**
      * @group accepts-any-kind-of-key
      */
     public function testAcceptsObjectsAsKeys()
