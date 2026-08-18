@@ -13,10 +13,9 @@ namespace Overblog\DataLoader\Test;
 
 use InvalidArgumentException;
 use Overblog\DataLoader\DataLoader;
-use React\Promise\Promise;
 use RuntimeException;
 
-class AbuseTest extends TestCase
+abstract class AbuseTestCase extends TestCase
 {
     /**
      * @group provides-descriptive-error-messages-for-api-abuse
@@ -34,7 +33,7 @@ class AbuseTest extends TestCase
      */
     public function testLoadFunctionRequiresAKeyWith0()
     {
-        self::assertInstanceOf(Promise::class, self::idLoader()->load(0));
+        self::assertTrue(self::$promiseAdapter->isPromise(self::idLoader()->load(0), true));
     }
 
     /**
@@ -53,7 +52,7 @@ class AbuseTest extends TestCase
      */
     public function testLoadManyFunctionRequiresAListEmptyArrayAccepted()
     {
-        self::assertInstanceOf(Promise::class, self::idLoader()->loadMany([]));
+        self::assertTrue(self::$promiseAdapter->isPromise(self::idLoader()->loadMany([]), true));
     }
 
     /**
