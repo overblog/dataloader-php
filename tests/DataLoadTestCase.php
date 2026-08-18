@@ -558,19 +558,8 @@ abstract class DataLoadTestCase extends TestCase
         $promise1 = $loader->load(1);
         $promise2 = $loader->load(2);
 
-        $rejectedReason1 = null;
-        $promise1->then(null, function ($reason) use (&$rejectedReason1) {
-            $rejectedReason1 = $reason;
-        });
-        $rejectedReason2 = null;
-        $promise2->then(null, function ($reason) use (&$rejectedReason2) {
-            $rejectedReason2 = $reason;
-        });
-
-        DataLoader::await();
-
-        $this->assertSame($throwable, $rejectedReason1);
-        $this->assertSame($throwable, $rejectedReason2);
+        $this->assertSame($throwable, DataLoader::await($promise1, false));
+        $this->assertSame($throwable, DataLoader::await($promise2, false));
 
         $this->assertEquals(
             [1, 2],
@@ -590,12 +579,7 @@ abstract class DataLoadTestCase extends TestCase
             return self::$promiseAdapter->createFulfilled($keys);
         });
 
-        $rejectedReason = null;
-        $loader->load(1)->then(null, function ($reason) use (&$rejectedReason) {
-            $rejectedReason = $reason;
-        });
-
-        $this->assertInstanceOf(\Exception::class, $rejectedReason);
+        $this->assertInstanceOf(\Exception::class, DataLoader::await($loader->load(1), false));
         $this->assertEquals(1, DataLoader::await($loader->load(1)));
         $this->assertEquals([[1], [1]], $loadCalls->getArrayCopy());
     }
