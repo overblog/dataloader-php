@@ -22,6 +22,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 abstract class TestCase extends \PHPUnit\Framework\TestCase
 {
+    /** Fixture file names mapped to testExecute() parameter names. */
+    private const FIXTURE_ARGUMENTS = ['metrics' => 'expectedMetrics', 'response' => 'expectedResponse'];
+
     private static $fixtures = null;
 
     public static function getFixtures()
@@ -32,7 +35,7 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
             foreach ($fixturesFiles as $file) {
                 $pathInfo = pathinfo($file);
                 $group = basename($pathInfo['dirname']);
-                $key = $pathInfo['filename'];
+                $key = self::FIXTURE_ARGUMENTS[$pathInfo['filename']] ?? $pathInfo['filename'];
 
                 $content = file_get_contents($file);
 

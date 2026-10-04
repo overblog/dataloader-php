@@ -51,7 +51,7 @@ class CacheMap
     private static function serializedKey($key)
     {
         if (is_object($key)) {
-            return spl_object_hash($key);
+            return sprintf('%032x', spl_object_id($key));
         } elseif (is_array($key)) {
             return json_encode($key);
         }

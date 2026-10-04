@@ -22,7 +22,7 @@ use Overblog\PromiseAdapter\PromiseAdapterInterface;
  */
 class WebonyxGraphQLSyncPromiseAdapter implements PromiseAdapterInterface
 {
-    /** @var callable[] */
+    /** @var array<int, callable> */
     private $cancellers = [];
 
     /**
@@ -61,7 +61,7 @@ class WebonyxGraphQLSyncPromiseAdapter implements PromiseAdapterInterface
             $resolve = $res;
             $reject = $rej;
         });
-        $this->cancellers[spl_object_hash($promise)] = $canceller;
+        $this->cancellers[spl_object_id($promise)] = $canceller;
 
         return $promise;
     }
@@ -137,8 +137,8 @@ class WebonyxGraphQLSyncPromiseAdapter implements PromiseAdapterInterface
             throw $exception;
         }
 
-        $hash = spl_object_hash($promise);
-        unset($this->cancellers[$hash]);
+        $id = spl_object_id($promise);
+        unset($this->cancellers[$id]);
         return $resolvedValue;
     }
 
@@ -147,12 +147,12 @@ class WebonyxGraphQLSyncPromiseAdapter implements PromiseAdapterInterface
      */
     public function cancel($promise)
     {
-        $hash = spl_object_hash($promise);
-        if (!$this->isPromise($promise) || !isset($this->cancellers[$hash])) {
+        $id = spl_object_id($promise);
+        if (!$this->isPromise($promise) || !isset($this->cancellers[$id])) {
             throw new \InvalidArgumentException(sprintf('The "%s" method must be called with a compatible Promise.', __METHOD__));
         }
-        $canceller = $this->cancellers[$hash];
-        unset($this->cancellers[$hash]);
+        $canceller = $this->cancellers[$id];
+        unset($this->cancellers[$id]);
         $adoptedPromise = $promise;
         if ($promise instanceof Promise) {
             $adoptedPromise = $promise->adoptedPromise;
